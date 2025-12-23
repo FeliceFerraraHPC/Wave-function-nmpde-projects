@@ -200,3 +200,6 @@ void WaveEquation<dim>::run()
         old_solution_v = solution_v;
     }
 }
+
+// Explicit instantiation for the dimensions we use in the executable
+template class WaveEquation<2>;

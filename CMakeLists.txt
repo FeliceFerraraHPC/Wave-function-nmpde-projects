@@ -3,5 +3,8 @@ project(project_title LANGUAGES CXX C)
 
 include(../common/cmake-common.cmake)
 
-add_executable(WaveEquation src/WaveEquation.cpp)
+add_executable(WaveEquation
+	src/main.cpp
+	src/WaveEquation.cpp
+)
 deal_ii_setup_target(WaveEquation)
