@@ -30,22 +30,31 @@
 
 using namespace dealii;
 
+enum class Target {
+    Position,
+    Velocity
+};
+
 template <int dim>
 class WaveEquation
 {
 public:
     WaveEquation();
+    WaveEquation(const int fe_degree_, const Triangulation<dim> &triangulation_, double time_step_, double time_, unsigned int timestep_number_, const double theta_);
     void run();
+    double compute_error(const VectorTools::NormType &norm_type,
+                         const Target target,
+                         const Function<dim>  &exact_solution) const;
+
 
 private:
     void setup_system();
     void solve_u();
     void solve_v();
     void output_results() const;
-
-    Triangulation<dim> triangulation;
     const FE_Q<dim> fe;
     DoFHandler<dim> dof_handler;
+    Triangulation<dim> triangulation;
 
     AffineConstraints<double> constraints;
 
@@ -95,12 +104,13 @@ template <int dim>
 class RightHandSide : public Function<dim>
 {
 public:
-    virtual double value(const Point<dim> & /*p*/,
+    virtual double value(const Point<dim> & p,
                          const unsigned int component = 0) const override
     {
         (void)component;
         Assert(component == 0, ExcIndexRange(component, 0, 1));
-        return 0;
+        double t = this->get_time();
+        return 2 * std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]) * (1 + t * t * M_PI * M_PI);
     }
 };
 
@@ -114,11 +124,7 @@ public:
         (void)component;
         Assert(component == 0, ExcIndexRange(component, 0, 1));
 
-        if ((this->get_time() <= 0.5) && (p[0] < 0) && (p[1] < 1. / 3) &&
-            (p[1] > -1. / 3))
-            return std::sin(this->get_time() * 4 * numbers::PI);
-        else
-            return 0;
+        return 0;
     }
 };
 
@@ -132,10 +138,6 @@ public:
         (void)component;
         Assert(component == 0, ExcIndexRange(component, 0, 1));
 
-        if ((this->get_time() <= 0.5) && (p[0] < 0) && (p[1] < 1. / 3) &&
-            (p[1] > -1. / 3))
-            return (std::cos(this->get_time() * 4 * numbers::PI) * 4 * numbers::PI);
-        else
-            return 0;
+        return 0;
     }
 };

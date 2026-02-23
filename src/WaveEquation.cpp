@@ -1,4 +1,5 @@
 #include "WaveEquation.hpp"
+#include <deal.II/fe/fe_values.h>
 
 template <int dim>
 WaveEquation<dim>::WaveEquation()
@@ -7,19 +8,18 @@ WaveEquation<dim>::WaveEquation()
 }
 
 template <int dim>
+WaveEquation<dim>::WaveEquation(const int fe_degree_, const Triangulation<dim> &triangulation_, double time_step_, double time_, unsigned int timestep_number_, const double theta_)
+: fe(fe_degree_), dof_handler(triangulation_), time_step(time_step_), time(time_), timestep_number(timestep_number_), theta(theta_)
+{
+}
+
+template <int dim>
 void WaveEquation<dim>::setup_system()
 {
-    GridGenerator::hyper_cube(triangulation, -1, 1);
-    triangulation.refine_global(7);
-
-    std::cout << "Number of active cells: " << triangulation.n_active_cells()
-              << std::endl;
+    // GridGenerator::hyper_cube(triangulation, -1, 1);
+    // triangulation.refine_global(7);
 
     dof_handler.distribute_dofs(fe);
-
-    std::cout << "Number of degrees of freedom: " << dof_handler.n_dofs()
-              << std::endl
-              << std::endl;
 
     DynamicSparsityPattern dsp(dof_handler.n_dofs(), dof_handler.n_dofs());
     DoFTools::make_sparsity_pattern(dof_handler, dsp);
@@ -53,9 +53,6 @@ void WaveEquation<dim>::solve_u()
     SolverCG<Vector<double>> cg(solver_control);
 
     cg.solve(matrix_u, solution_u, system_rhs, PreconditionIdentity());
-
-    std::cout << "   u-equation: " << solver_control.last_step()
-              << " CG iterations." << std::endl;
 }
 
 template <int dim>
@@ -65,9 +62,6 @@ void WaveEquation<dim>::solve_v()
     SolverCG<Vector<double>> cg(solver_control);
 
     cg.solve(matrix_v, solution_v, system_rhs, PreconditionIdentity());
-
-    std::cout << "   v-equation: " << solver_control.last_step()
-              << " CG iterations." << std::endl;
 }
 
 template <int dim>
@@ -111,9 +105,6 @@ void WaveEquation<dim>::run()
 
     for (; time <= 5; time += time_step, ++timestep_number)
     {
-        std::cout << "Time step " << timestep_number << " at t=" << time
-                  << std::endl;
-
         mass_matrix.vmult(system_rhs, old_solution_u);
 
         mass_matrix.vmult(tmp, old_solution_v);
@@ -188,17 +179,42 @@ void WaveEquation<dim>::run()
         }
         solve_v();
 
-        output_results();
+        // output_results();
 
-        std::cout << "   Total energy: "
-                  << (mass_matrix.matrix_norm_square(solution_v) +
-                      laplace_matrix.matrix_norm_square(solution_u)) /
-                         2
-                  << std::endl;
+        // std::cout << "   Total energy: "
+        //           << (mass_matrix.matrix_norm_square(solution_v) +
+        //               laplace_matrix.matrix_norm_square(solution_u)) /
+        //                  2
+        //           << std::endl;
 
         old_solution_u = solution_u;
         old_solution_v = solution_v;
     }
+}
+
+template <int dim>
+double WaveEquation<dim>::compute_error(const VectorTools::NormType &norm_type,
+                            const Target target,
+                            const Function<dim> &exact_solution) const
+{
+    const QGauss<dim> quadrature_error(fe.get_degree() + 2);
+
+    Vector<double> error_per_cell(triangulation.n_active_cells());
+
+    const Vector<double> &solution =
+        (target == Target::Position) ? solution_u : solution_v;
+
+    VectorTools::integrate_difference(dof_handler,
+                                                                        solution,
+                                                                        exact_solution,
+                                                                        error_per_cell,
+                                                                        quadrature_error,
+                                                                        norm_type);
+
+  const double error =
+    VectorTools::compute_global_error(triangulation, error_per_cell, norm_type);
+
+  return error;
 }
 
 // Explicit instantiation for the dimensions we use in the executable
