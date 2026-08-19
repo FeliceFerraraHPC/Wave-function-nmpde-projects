@@ -1,36 +1,82 @@
-## C++ #########################################################################
+# ==============================================================================
+# Build directories and CMake files
+# ==============================================================================
+build/
+build*/
+bin/
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake.check_cache
 
-# Prerequisites
+# ==============================================================================
+# Compiled Object files, Libraries, and Prerequisites
+# ==============================================================================
 *.d
-
-# Compiled Object files
-*.slo
-*.lo
 *.o
 *.obj
+*.slo
+*.lo
 
 # Precompiled Headers
 *.gch
 *.pch
 
-# Compiled Dynamic libraries
+# Compiled Dynamic & Static Libraries
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
 *.lai
 *.la
 *.a
 *.lib
 
-# Executables
+# Fortran module files
+*.mod
+*.smod
+
+# ==============================================================================
+# Executables and Binaries
+# ==============================================================================
 *.exe
 *.out
 *.app
+*.bin
+WaveEquation
 
-*/build/*
+# ==============================================================================
+# Simulation Output & Visualization Data
+# ==============================================================================
+*.vtu
+*.pvtu
+*.vtk
+*.pvd
+*.csv
+*.dat
+*.log
+output*/
+
+# ==============================================================================
+# Local Lab & Reference Folders
+# ==============================================================================
+lab-*/
+env_modules.sh
+
+# ==============================================================================
+# Editor and OS-specific files
+# ==============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*~
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+src/wave_matrix_free.cpp --- IGNORE ---

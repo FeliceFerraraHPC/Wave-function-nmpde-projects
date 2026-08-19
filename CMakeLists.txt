@@ -4,6 +4,7 @@ project(project_title LANGUAGES CXX C)
 include(common/cmake-common.cmake)
 
 add_executable(WaveEquation
-	src/wave_matrix_free.cpp
+	src/main.cpp
+	src/WaveEquation.cpp
 )
 deal_ii_setup_target(WaveEquation)
