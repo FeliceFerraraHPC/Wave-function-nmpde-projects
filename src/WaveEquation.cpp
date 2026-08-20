@@ -127,6 +127,13 @@ WaveProblem<dim>::make_grid_and_dofs()
   constraints.clear();
   constraints.reinit(locally_relevant_dofs);
   DoFTools::make_hanging_node_constraints(dof_handler, constraints);
+
+  // Enforce u = 0 on all boundary faces (boundary_id = 0 by default for hyper_cube)
+  VectorTools::interpolate_boundary_values(mapping,
+                                           dof_handler,
+                                           0,
+                                           Functions::ZeroFunction<dim>(),
+                                           constraints);
   constraints.close();
 
   typename MatrixFree<dim, double>::AdditionalData additional_data;
@@ -209,14 +216,36 @@ WaveProblem<dim>::run()
         << ", finest cell: " << global_min_cell_diameter << std::endl
         << std::endl;
 
+  // 1. Set time to 0
+  time = 0.0;
+
+  // 2. Interpolate u_0 and u_1
+  LinearAlgebra::distributed::Vector<double> u_0, u_1;
+  u_0.reinit(solution);
+  u_1.reinit(solution);
+
   VectorTools::interpolate(mapping,
                            dof_handler,
-                           InitialCondition<dim>(1, time),
-                           solution);
+                           InitialDisplacement<dim>(),
+                           u_0);
   VectorTools::interpolate(mapping,
                            dof_handler,
-                           InitialCondition<dim>(1, time - time_step),
-                           old_solution);
+                           InitialVelocity<dim>(),
+                           u_1);
+
+  constraints.distribute(u_0);
+  constraints.distribute(u_1);
+
+  // solution corresponds to u^0
+  solution = u_0;
+
+  // 3. Compute u^{-1} = u_0 - dt * u_1 + (dt^2 / 2) * Δu_0
+  // Note: If u_1 = 0, u^{-1} = u^1, meaning the first leapfrog step reduces to:
+  // u^1 = u^0 + (dt^2 / 2) * Δu_0
+  // which is equivalent to setting old_solution = u_0 - dt * u_1
+  old_solution = u_0;
+  old_solution.add(-time_step, u_1); // old_solution = u_0 - dt * u_1
+
   output_results(0);
 
   std::vector<LinearAlgebra::distributed::Vector<double> *>
@@ -236,6 +265,7 @@ WaveProblem<dim>::run()
       old_old_solution.swap(old_solution);
       old_solution.swap(solution);
       wave_op.apply(solution, previous_solutions);
+      constraints.distribute(solution); // Restores exact zero values on boundary DOFs
       wtime += timer.wall_time();
 
       timer.restart();

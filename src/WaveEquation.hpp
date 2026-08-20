@@ -68,33 +68,66 @@ private:
 };
 
 /**
- * Class representing the initial condition (Gaussian wave packet).
+ * Class representing the initial displacement u_0(x) (Gaussian wave packet).
  */
 template <int dim>
-class InitialCondition : public Function<dim>
+class InitialDisplacement : public Function<dim>
 {
 public:
-  // Constructor.
-  InitialCondition(const unsigned int n_components = 1,
-                   const double       time         = 0.)
-    : Function<dim>(n_components, time)
+  InitialDisplacement(const double time = 0.)
+    : Function<dim>(1, time)
   {}
 
-  // Value evaluation.
   virtual double
-  value(const Point<dim> &p,
-        const unsigned int component = 0) const override
+  value(const Point<dim> &p, const unsigned int = 0) const override
   {
-    (void)component;
-    (void)this->get_time();
-
-    const double width  = 1.0;
-    double       result = 1.0;
+    const double width = 1.0;
+    double       r2    = 0.0;
     for (unsigned int d = 0; d < dim; ++d)
-      result *= std::exp(-(p[d] * p[d]) / (2. * width * width));
-    return result;
+      r2 += p[d] * p[d];
+    return std::exp(-r2 / (2. * width * width));
   }
 };
+
+/**
+ * Class representing the initial velocity u_1(x) = ∂u/∂t(x, 0).
+ */
+template <int dim>
+class InitialVelocity : public Function<dim>
+{
+public:
+  InitialVelocity(const double time = 0.)
+    : Function<dim>(1, time)
+  {}
+
+  virtual double
+  value(const Point<dim> & /*p*/, const unsigned int = 0) const override
+  {
+    return 0.0; // u_1 = 0 if wave starts from rest
+  }
+};
+
+/**
+ * Class representing the right-hand side forcing term f(x, t).
+ */
+template <int dim>
+class ForcingTerm : public Function<dim>
+{
+public:
+  ForcingTerm(const double time = 0.)
+    : Function<dim>(1, time)
+  {}
+
+  virtual double
+  value(const Point<dim> & /*p*/, const unsigned int = 0) const override
+  {
+    return 0.0; // f = 0 for homogeneous wave equation
+  }
+};
+
+// Type alias for backwards compatibility
+template <int dim>
+using InitialCondition = InitialDisplacement<dim>;
 
 /**
  * Class managing the matrix-free wave equation problem.
@@ -115,7 +148,7 @@ public:
     , fe(QGaussLobatto<1>(fe_degree + 1))
     , dof_handler(triangulation)
     , n_global_refinements(10 - 2 * dim)
-    , time(-10)
+    , time(0.0)
     , time_step(10.)
     , final_time(10.)
     , cfl_number(.1 / fe_degree)

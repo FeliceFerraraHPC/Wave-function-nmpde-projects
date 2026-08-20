@@ -8,7 +8,7 @@ main(int argc, char **argv)
 
   try
     {
-      WaveProblem<2> wave_problem;
+      WaveProblem<3> wave_problem;
       wave_problem.run();
     }
   catch (std::exception &exc)
