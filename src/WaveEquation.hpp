@@ -140,7 +140,7 @@ public:
   static constexpr unsigned int fe_degree = 4;
 
   // Constructor.
-  WaveProblem()
+  WaveProblem(const double final_time_in = 30.0)
     : pcout(std::cout, Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
 #ifdef DEAL_II_WITH_P4EST
     , triangulation(MPI_COMM_WORLD)
@@ -150,9 +150,9 @@ public:
     , n_global_refinements(10 - 2 * dim)
     , time(0.0)
     , time_step(10.)
-    , final_time(10.)
+    , final_time(final_time_in)
     , cfl_number(.1 / fe_degree)
-    , output_timestep_skip(200)
+    , output_timestep_skip(100)
   {}
 
   // Run the simulation.

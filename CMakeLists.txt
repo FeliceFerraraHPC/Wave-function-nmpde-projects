@@ -8,3 +8,9 @@ add_executable(WaveEquation
 	src/WaveEquation.cpp
 )
 deal_ii_setup_target(WaveEquation)
+
+add_custom_target(clean-output
+	COMMAND ${CMAKE_COMMAND} -E rm -f ${CMAKE_BINARY_DIR}/solution_*.vtu ${CMAKE_BINARY_DIR}/solution_*.pvtu
+	COMMENT "Cleaning VTU/PVTU output files"
+)
+
