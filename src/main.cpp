@@ -1,177 +1,239 @@
+/**
+ * @file main.cpp
+ * @brief Unified benchmark driver for three wave equation solvers.
+ *
+ * Usage:
+ *   ./WaveBenchmark [options]
+ *
+ * Options:
+ *   --mode     [bench|convergence|both]   Default: bench
+ *   --dim      [2|3]                      Default: 2
+ *   --refine   N                          Global refinement level. Default: 6
+ *   --time     T                          Final simulation time. Default: 1.0
+ *   --solver   [all|theta|cg|dg]          Solvers to run. Default: all
+ *   --output                              Enable VTU output (disabled by default)
+ *
+ * In --mode bench:
+ *   Runs each selected solver on the SAME globally-refined triangulation and
+ *   prints a timing + DoF table to stdout.
+ *
+ * In --mode convergence:
+ *   Runs the theta-scheme manufactured-solution convergence study on a
+ *   sequence of meshes and prints convergence rates.
+ *
+ * In --mode both:
+ *   Runs the benchmark first, then the convergence study.
+ */
+
+#include <deal.II/base/mpi.h>
+#include <deal.II/base/multithread_info.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/tria.h>
+
+#ifdef DEAL_II_WITH_P4EST
+#  include <deal.II/distributed/tria.h>
+#endif
+
+#include <iomanip>
 #include <iostream>
-#include <deal.II/base/convergence_table.h>
-#include "WaveEquation.hpp"
+#include <memory>
+#include <string>
+#include <vector>
 
-static constexpr unsigned int dim = 2;
+#include "WaveFunctions.hpp"
+#include "WaveSolverBase.hpp"
+#include "WaveSolverDG.hpp"
+#include "WaveSolverMatFree.hpp"
+#include "WaveSolverTheta.hpp"
 
-// Exact solution for position u.
-// u(x,y,t) = sin(2π*x) * sin(4π*y) * cos(ω*t), where ω = 2π*√5
-class ExactSolutionU : public Function<dim>
+using namespace dealii;
+
+// ============================================================================
+// Parse simple command-line arguments
+// ============================================================================
+
+struct ProgramOptions
 {
-public:
-  // Constructor.
-  ExactSolutionU()
-  {}
-
-  // Evaluation.
-  virtual double
-  value(const Point<dim> &p,
-        const unsigned int /*component*/ = 0) const override
-  {
-    double t = this->get_time();
-
-    return t * t * std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]);
-  }
-
-  // Gradient evaluation.
-  virtual Tensor<1, dim>
-  gradient(const Point<dim> &p,
-           const unsigned int /*component*/ = 0) const override
-  {
-    const double t = this->get_time();
-    Tensor<1, dim> result;
-
-    result[0] = t * t * M_PI * std::cos(M_PI * p[0]) * std::sin(M_PI * p[1]);
-    result[1] = t * t * M_PI * std::sin(M_PI * p[0]) * std::cos(M_PI * p[1]);
-
-    return result;
-  }
+  std::string mode        = "bench";   // bench | convergence | both
+  int         dim         = 2;         // spatial dimension (2 or 3)
+  unsigned int refine     = 6;         // global refinement levels
+  double       final_time = 1.0;       // final simulation time
+  std::string  solver     = "all";     // all | theta | cg | dg
+  bool         write_output = false;   // write VTU files?
 };
 
-
-// Exact solution for velocity v.
-// v(x,y,t) = ∂u/∂t = -ω * sin(2π*x) * sin(4π*y) * sin(ω*t), where ω = 2π*√5
-class ExactSolutionV : public Function<dim>
+ProgramOptions
+parse_args(int argc, char **argv)
 {
-public:
-  // Constructor.
-  ExactSolutionV()
-  {}
-
-  // Evaluation.
-  virtual double
-  value(const Point<dim> &p,
-        const unsigned int /*component*/ = 0) const override
-  {
-    double t = this->get_time();
-
-    return 2 * t * std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]);
-  }
-
-  // Gradient evaluation.
-  virtual Tensor<1, dim>
-  gradient(const Point<dim> &p,
-           const unsigned int /*component*/ = 0) const override
-  {
-    const double t = this->get_time();
-    Tensor<1, dim> result;
-
-    result[0] = 2.0 * t * M_PI * std::cos(M_PI * p[0]) * std::sin(M_PI * p[1]);
-    result[1] = 2.0 * t * M_PI * std::sin(M_PI * p[0]) * std::cos(M_PI * p[1]);
-
-    return result;
-  }
-};
-
-void test_convergence();
-
-int main()
-{
-    try
+  ProgramOptions opts;
+  for (int i = 1; i < argc; ++i)
     {
-        // WaveEquation<2> wave_equation_solver;
-        // wave_equation_solver.run();
-
-        // Test convergence
-        test_convergence();
+      const std::string arg(argv[i]);
+      if (arg == "--mode"   && i + 1 < argc) opts.mode        = argv[++i];
+      else if (arg == "--dim"    && i + 1 < argc) opts.dim         = std::stoi(argv[++i]);
+      else if (arg == "--refine" && i + 1 < argc) opts.refine      = std::stoul(argv[++i]);
+      else if (arg == "--time"   && i + 1 < argc) opts.final_time  = std::stod(argv[++i]);
+      else if (arg == "--solver" && i + 1 < argc) opts.solver      = argv[++i];
+      else if (arg == "--output")                  opts.write_output = true;
     }
-    catch (std::exception &exc)
-    {
-        std::cerr << std::endl
-                  << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl;
-        std::cerr << "Exception on processing: " << std::endl
-                  << exc.what() << std::endl
-                  << "Aborting!" << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl;
-
-        return 1;
-    }
-    catch (...)
-    {
-        std::cerr << std::endl
-                  << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl;
-        std::cerr << "Unknown exception!" << std::endl
-                  << "Aborting!" << std::endl
-                  << "----------------------------------------------------"
-                  << std::endl;
-        return 1;
-    }
-
-    return 0;
+  return opts;
 }
 
-void test_convergence() {
-ConvergenceTable table;
+// ============================================================================
+// Benchmark mode: run all selected solvers on the same mesh
+// ============================================================================
 
-  const std::vector<unsigned int> N_el_values = {5, 6, 7};
-  const unsigned int              r           = 1;
-  double time_step;
+template <int dim>
+void
+run_benchmark(const ProgramOptions &opts)
+{
+  ConditionalOStream pcout(std::cout,
+                           Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
-  ExactSolutionU exact_solution_u;
-  ExactSolutionV exact_solution_v;
+  pcout << "========================================\n"
+        << "  Wave Equation Benchmark  (dim=" << dim << ")\n"
+        << "========================================\n"
+        << "  Refinement levels : " << opts.refine    << "\n"
+        << "  Final time        : " << opts.final_time << "\n"
+        << "  MPI ranks         : "
+        << Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) << "\n"
+        << "  Threads / rank    : " << MultithreadInfo::n_threads() << "\n"
+        << std::endl;
 
-  exact_solution_u.set_time(5.0);
-  exact_solution_v.set_time(5.0);
+  // --- Build the shared triangulation ---
+#ifdef DEAL_II_WITH_P4EST
+  parallel::distributed::Triangulation<dim> tria(MPI_COMM_WORLD);
+#else
+  Triangulation<dim> tria;
+#endif
 
-  std::ofstream convergence_file("convergence.csv");
-  convergence_file << "h,eL2(u),eH1(u),eL2(v),eH1(v)" << std::endl;
+  // Domain: [-15, 15]^dim — large enough for the Gaussian wave packet.
+  GridGenerator::hyper_cube(tria, -15.0, 15.0);
+  tria.refine_global(opts.refine);
 
-  for (const auto &N_el : N_el_values)
+  pcout << "   Global active cells : " << tria.n_global_active_cells() << "\n\n";
+
+  // --- Initial conditions (shared by all solvers) ---
+  const InitialDisplacement<dim> u0; // Gaussian wave packet
+  const InitialVelocity<dim>     v0; // zero velocity
+
+  // --- Collect solvers to run ---
+  using SolverPtr = std::unique_ptr<WaveSolverBase<dim>>;
+  std::vector<SolverPtr> solvers;
+
+  if (opts.solver == "all" || opts.solver == "theta")
+    solvers.emplace_back(std::make_unique<WaveSolverTheta<dim>>());
+
+  if (opts.solver == "all" || opts.solver == "cg")
+    solvers.emplace_back(std::make_unique<WaveSolverMatFree<dim>>());
+
+  if (opts.solver == "all" || opts.solver == "dg")
+    solvers.emplace_back(std::make_unique<WaveSolverDG<dim>>());
+
+  // Header for results table
+  pcout << std::left
+        << std::setw(36) << "Solver"
+        << std::setw(12) << "DoFs"
+        << std::setw(14) << "Steps"
+        << std::setw(18) << "Compute time (s)"
+        << std::setw(18) << "Avg time/step (s)"
+        << "\n"
+        << std::string(98, '-') << "\n";
+
+  // --- Run each solver ---
+  for (auto &solver : solvers)
     {
-      Triangulation<dim> mesh; 
-      GridGenerator::hyper_cube(mesh, 0, 1);
-      mesh.refine_global(N_el);
-        
-      const double h = 1.0 / std::pow(2, N_el);
-      time_step = h / 2.0;
-    
-      WaveEquation<2> problem(r, mesh, time_step, /*t*/0, /*time_step_number*/1, /*theta*/ 0.5);
+      solver->setup(tria);
+      solver->set_initial_conditions(u0, v0);
 
-      problem.run();
+      const double wtime = solver->run(opts.final_time, opts.write_output);
 
-      
+      const unsigned int n_steps =
+        static_cast<unsigned int>(opts.final_time / solver->time_step_size());
 
-      const double error_L2_u =
-        problem.compute_error(VectorTools::L2_norm, Target::Position, exact_solution_u);
-      const double error_H1_u =
-        problem.compute_error(VectorTools::H1_norm, Target::Position, exact_solution_u);
-
-
-      const double error_L2_v =
-        problem.compute_error(VectorTools::L2_norm, Target::Velocity, exact_solution_v);
-      const double error_H1_v =
-        problem.compute_error(VectorTools::H1_norm, Target::Velocity, exact_solution_v);
-      table.add_value("h", h);
-      table.add_value("L2(u)", error_L2_u);
-      table.add_value("H1(u)", error_H1_u);
-      table.add_value("L2(v)", error_L2_v);
-      table.add_value("H1(v)", error_H1_v);
-
-      convergence_file << h << "," << error_L2_u << "," << error_H1_u << "," << error_L2_v << "," << error_H1_v <<std::endl;
+      pcout << std::left
+            << std::setw(36) << solver->name()
+            << std::setw(12) << solver->n_dofs()
+            << std::setw(14) << n_steps
+            << std::setw(18) << std::fixed << std::setprecision(4) << wtime
+            << std::setw(18) << (n_steps > 0 ? wtime / n_steps : 0.0)
+            << "\n";
     }
 
-  table.evaluate_all_convergence_rates(ConvergenceTable::reduction_rate_log2);
+  pcout << std::string(98, '-') << "\n" << std::endl;
+}
 
-  table.set_scientific("L2(u)", true);
-  table.set_scientific("H1(u)", true);
-  table.set_scientific("L2(v)", true);
-  table.set_scientific("H1(v)", true);
+// ============================================================================
+// Convergence mode: theta-scheme manufactured-solution test
+// ============================================================================
 
-  table.write_text(std::cout);
+template <int dim>
+void
+run_convergence(const ProgramOptions &opts)
+{
+  static_assert(dim == 2, "Convergence study only implemented for dim=2.");
 
+  ConditionalOStream pcout(std::cout,
+                           Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+
+  pcout << "========================================\n"
+        << "  Theta-Scheme Convergence Study\n"
+        << "========================================\n";
+
+  WaveSolverTheta<dim> solver;
+  const std::vector<unsigned int> levels = {5, 6, 7};
+  solver.run_convergence_study(levels, opts.final_time, /*fe_degree=*/1);
+}
+
+// ============================================================================
+// main()
+// ============================================================================
+
+int
+main(int argc, char **argv)
+{
+  Utilities::MPI::MPI_InitFinalize mpi_initialization(
+    argc, argv, numbers::invalid_unsigned_int);
+
+  try
+    {
+      const ProgramOptions opts = parse_args(argc, argv);
+
+      if (opts.dim == 2)
+        {
+          if (opts.mode == "bench" || opts.mode == "both")
+            run_benchmark<2>(opts);
+          if (opts.mode == "convergence" || opts.mode == "both")
+            run_convergence<2>(opts);
+        }
+      else if (opts.dim == 3)
+        {
+          if (opts.mode == "bench" || opts.mode == "both")
+            run_benchmark<3>(opts);
+          // Convergence study in 3D not implemented (manufactured solution is 2D only)
+        }
+      else
+        {
+          std::cerr << "Error: --dim must be 2 or 3.\n";
+          return 1;
+        }
+    }
+  catch (std::exception &exc)
+    {
+      std::cerr << "\n----------------------------------------------------\n"
+                << "Exception on processing:\n"
+                << exc.what() << "\nAborting!\n"
+                << "----------------------------------------------------\n";
+      return 1;
+    }
+  catch (...)
+    {
+      std::cerr << "\n----------------------------------------------------\n"
+                << "Unknown exception! Aborting!\n"
+                << "----------------------------------------------------\n";
+      return 1;
+    }
+
+  return 0;
 }
