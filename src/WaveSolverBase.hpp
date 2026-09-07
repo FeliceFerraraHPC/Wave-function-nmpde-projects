@@ -51,14 +51,19 @@ public:
                          const Function<dim> &v0) = 0;
 
   /**
+   * Attach a forcing function (right-hand side).
+   */
+  virtual void
+  set_forcing_function(const Function<dim> *f) = 0;
+
+  /**
    * Run the full time loop from t = 0 to t = T.
    *
    * @param T             Final simulation time.
    * @param write_output  If true, write VTU output files during the loop.
    * @return              Total compute wall time in seconds (I/O excluded).
    */
-  virtual double
-  run(double T, bool write_output = false) = 0;
+  virtual double run(double T, bool write_output = false, unsigned int output_frequency = 100) = 0;
 
   /**
    * Compute the error of the displacement solution against an exact function.

@@ -81,10 +81,10 @@ public:
 };
 
 // ---------------------------------------------------------------------------
-// Manufactured exact solution for the theta-scheme convergence study.
-//   u(x,y,t)   = t^2 * sin(pi*x) * sin(pi*y)
-//   u_t(x,y,t) = 2t  * sin(pi*x) * sin(pi*y)
-//   RHS f       = 2 * sin(pi*x) * sin(pi*y) * (1 + t^2 * pi^2)
+// Manufactured exact solution for the convergence study.
+//   u(x,y,t)   = t^3 * sin(pi*x) * sin(pi*y)
+//   u_t(x,y,t) = 3t^2 * sin(pi*x) * sin(pi*y)
+//   RHS f      = (6t + 2*pi^2*t^3) * sin(pi*x) * sin(pi*y)
 // ---------------------------------------------------------------------------
 template <int dim>
 class ManufacturedSolutionU : public Function<dim>
@@ -99,7 +99,7 @@ public:
   value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
   {
     const double t = this->get_time();
-    return t * t * std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]);
+    return t * t * t * std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]);
   }
 
   virtual Tensor<1, dim>
@@ -107,8 +107,8 @@ public:
   {
     const double t = this->get_time();
     Tensor<1, dim> g;
-    g[0] = t * t * M_PI * std::cos(M_PI * p[0]) * std::sin(M_PI * p[1]);
-    g[1] = t * t * M_PI * std::sin(M_PI * p[0]) * std::cos(M_PI * p[1]);
+    g[0] = t * t * t * M_PI * std::cos(M_PI * p[0]) * std::sin(M_PI * p[1]);
+    g[1] = t * t * t * M_PI * std::sin(M_PI * p[0]) * std::cos(M_PI * p[1]);
     return g;
   }
 };
@@ -126,7 +126,7 @@ public:
   value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
   {
     const double t = this->get_time();
-    return 2.0 * t * std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]);
+    return 3.0 * t * t * std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]);
   }
 };
 
@@ -143,8 +143,8 @@ public:
   value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
   {
     const double t = this->get_time();
-    return 2.0 * std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]) *
-           (1.0 + t * t * M_PI * M_PI);
+    return std::sin(M_PI * p[0]) * std::sin(M_PI * p[1]) *
+           (6.0 * t + 2.0 * M_PI * M_PI * t * t * t);
   }
 };
 

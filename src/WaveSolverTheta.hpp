@@ -70,8 +70,10 @@ public:
   set_initial_conditions(const Function<dim> &u0,
                          const Function<dim> &v0) override;
 
-  double
-  run(double T, bool write_output = false) override;
+  void
+  set_forcing_function(const Function<dim> *f) override;
+
+  double run(double T, bool write_output = false, unsigned int output_frequency = 100) override;
 
   double
   compute_error(VectorTools::NormType norm_type,
@@ -81,12 +83,6 @@ public:
   double       time_step_size() const override { return time_step_; }
   unsigned int n_dofs()         const override;
   std::string  name()           const override { return "Theta-scheme (Trilinos MPI)"; }
-
-  // Optional: run the manufactured-solution convergence study (serial helper).
-  void run_convergence_study(const std::vector<unsigned int> &refinement_levels,
-                             double                           final_time,
-                             unsigned int                     fe_degree,
-                             double                           theta = 0.5);
 
 private:
   void setup_system();

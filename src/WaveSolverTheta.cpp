@@ -134,6 +134,17 @@ WaveSolverTheta<dim>::set_initial_conditions(const Function<dim> &u0,
 }
 
 // ============================================================================
+// set_forcing_function()
+// ============================================================================
+
+template <int dim>
+void
+WaveSolverTheta<dim>::set_forcing_function(const Function<dim> *f)
+{
+  forcing_function_ptr_ = f;
+}
+
+// ============================================================================
 // solve_u() / solve_v()
 // ============================================================================
 
@@ -199,11 +210,15 @@ WaveSolverTheta<dim>::output_results(unsigned int step_number) const
 
 template <int dim>
 double
-WaveSolverTheta<dim>::run(double T, bool write_output)
+WaveSolverTheta<dim>::run(double T, bool write_output, unsigned int output_frequency)
 {
-  // Choose time step proportional to mesh size (CFL-like).
+  // Choose time step proportional to mesh size (CFL-like) and snap it to T.
   const double h = GridTools::minimal_cell_diameter(*tria_ptr_);
   time_step_      = h / 2.0;
+  
+  unsigned int num_steps = static_cast<unsigned int>(std::ceil(T / time_step_));
+  time_step_ = T / num_steps;
+  
   time_           = time_step_;
   timestep_number_ = 1;
 
@@ -218,7 +233,7 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
   Timer timer;
   double wtime = 0.0;
 
-  for (; time_ <= T; time_ += time_step_, ++timestep_number_)
+  for (; time_ <= T + 1e-12; time_ += time_step_, ++timestep_number_)
     {
       timer.restart();
 
@@ -252,8 +267,7 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
         VectorTools::interpolate_boundary_values(dof_handler_, 0, zero_bc, bv);
         matrix_u_.copy_from(mass_matrix_);
         matrix_u_.add(theta_ * theta_ * time_step_ * time_step_, laplace_matrix_);
-        MatrixTools::apply_boundary_values(bv, matrix_u_, solution_u_, system_rhs_,
-                                           /*eliminate_columns=*/false);
+        MatrixTools::apply_boundary_values(bv, matrix_u_, solution_u_, system_rhs_);
       }
       solve_u();
 
@@ -275,8 +289,7 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
         std::map<types::global_dof_index, double> bv;
         VectorTools::interpolate_boundary_values(dof_handler_, 0, zero_bc, bv);
         matrix_v_.copy_from(mass_matrix_);
-        MatrixTools::apply_boundary_values(bv, matrix_v_, solution_v_, system_rhs_,
-                                           /*eliminate_columns=*/false);
+        MatrixTools::apply_boundary_values(bv, matrix_v_, solution_v_, system_rhs_);
       }
       solve_v();
 
@@ -285,7 +298,7 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
       old_solution_u_ = solution_u_;
       old_solution_v_ = solution_v_;
 
-      if (write_output && timestep_number_ % 10 == 0)
+      if (write_output && (timestep_number_ % output_frequency == 0 || time_ >= T))
         output_results(timestep_number_);
     }
 
@@ -326,81 +339,7 @@ WaveSolverTheta<dim>::n_dofs() const
   return static_cast<unsigned int>(dof_handler_.n_dofs());
 }
 
-// ============================================================================
-// run_convergence_study()  — optional manufactured-solution test
-// ============================================================================
 
-template <int dim>
-void
-WaveSolverTheta<dim>::run_convergence_study(
-  const std::vector<unsigned int> &refinement_levels,
-  double                           final_time,
-  unsigned int                     fe_degree,
-  double                           theta)
-{
-  // The manufactured solution is only defined for dim==2.
-  // Use if constexpr so the dim==3 instantiation compiles without error.
-  if constexpr (dim == 2)
-    {
-      ConvergenceTable table;
-
-      std::ofstream csv("convergence_theta.csv");
-      csv << "h,eL2(u),eH1(u),eL2(v),eH1(v)\n";
-
-      for (const unsigned int N_el : refinement_levels)
-        {
-          Triangulation<dim> mesh;
-          GridGenerator::hyper_cube(mesh, 0.0, 1.0);
-          mesh.refine_global(N_el);
-
-          const double h  = 1.0 / std::pow(2.0, N_el);
-          const double dt = h / 2.0;
-
-          WaveSolverTheta<dim> solver(fe_degree, theta);
-          solver.setup(mesh);
-
-          // Exact solution at t=0 is zero for both u and v.
-          Functions::ZeroFunction<dim> zero;
-          solver.set_initial_conditions(zero, zero);
-          solver.time_step_ = dt;
-          solver.time_      = dt;
-
-          // Attach manufactured forcing function.
-          ManufacturedRHS<dim> rhs_func;
-          solver.forcing_function_ptr_ = &rhs_func;
-
-          solver.run(final_time, /*write_output=*/false);
-
-          ManufacturedSolutionU<dim> sol_u_T(final_time);
-
-          const double eL2u = solver.compute_error(VectorTools::L2_norm, sol_u_T);
-          const double eH1u = solver.compute_error(VectorTools::H1_norm, sol_u_T);
-          // v-error reporting requires access to solution_v_ — placeholder for now.
-          const double eL2v = 0.0;
-          const double eH1v = 0.0;
-
-          table.add_value("h",     h);
-          table.add_value("L2(u)", eL2u);
-          table.add_value("H1(u)", eH1u);
-          table.add_value("L2(v)", eL2v);
-          table.add_value("H1(v)", eH1v);
-
-          csv << h << "," << eL2u << "," << eH1u << ","
-              << eL2v << "," << eH1v << "\n";
-        }
-
-      table.evaluate_all_convergence_rates(ConvergenceTable::reduction_rate_log2);
-      table.set_scientific("L2(u)", true);
-      table.set_scientific("H1(u)", true);
-      table.set_scientific("L2(v)", true);
-      table.set_scientific("H1(v)", true);
-      table.write_text(std::cout);
-    }
-  else
-    {
-      std::cerr << "run_convergence_study: not implemented for dim=" << dim << std::endl;
-    }
-}
 
 // ============================================================================
 // Explicit instantiations

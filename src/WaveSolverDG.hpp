@@ -46,7 +46,9 @@ public:
 
   void
   apply(LinearAlgebra::distributed::Vector<double>                      &dst,
-        const std::vector<LinearAlgebra::distributed::Vector<double> *> &src) const;
+        const std::vector<LinearAlgebra::distributed::Vector<double> *> &src,
+        const Function<dim>                                             *forcing_function,
+        double                                                           current_time) const;
 
 private:
   void
@@ -74,6 +76,10 @@ private:
   const VectorizedArray<double>              delta_t_sqr_;
   const double                               h_inv_;  ///< 1/h for SIPG penalty
   LinearAlgebra::distributed::Vector<double> inv_mass_matrix_;
+  
+  // Temporary storage passed via apply() for local_apply
+  mutable const Function<dim> *current_forcing_function_ = nullptr;
+  mutable double               current_time_             = 0.0;
 };
 
 // ---------------------------------------------------------------------------
@@ -97,8 +103,10 @@ public:
   set_initial_conditions(const Function<dim> &u0,
                          const Function<dim> &v0) override;
 
-  double
-  run(double T, bool write_output = false) override;
+  void
+  set_forcing_function(const Function<dim> *f) override;
+
+  double run(double T, bool write_output = false, unsigned int output_frequency = 100) override;
 
   double
   compute_error(VectorTools::NormType norm_type,
@@ -112,6 +120,8 @@ public:
 
 private:
   void output_results(unsigned int timestep_number);
+
+  const Function<dim> *forcing_function_ptr_ = nullptr;
 
   ConditionalOStream pcout_;
 
