@@ -61,7 +61,7 @@ struct ProgramOptions
   std::string mode = "bench"; // bench | convergence | both
   int dim = 2;                // spatial dimension (2 or 3)
   unsigned int refine = 6;    // global refinement levels
-  double final_time = 20.0;   // final simulation time
+  double final_time = 200.0;  // final simulation time
   std::string solver = "all"; // all | theta | cg | dg
   double gamma = 0.0;         // damping coeff in u_tt - Delta u + gamma*u_t = 0
   bool write_output = true;   // write VTU files?

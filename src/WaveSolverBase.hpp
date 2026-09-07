@@ -37,11 +37,31 @@ using namespace dealii;
 struct EnergyData
 {
   double time             = 0.0; // simulation time of this snapshot
-  double kinetic_energy   = 0.0; // E_kin
-  double potential_energy = 0.0; // E_pot
-  double total_energy     = 0.0; // E_tot = E_kin + E_pot
+  double kinetic_energy   = 0.0; // E_kin  (natural: v^n = (u^{n+1}-u^{n-1})/(2dt))
+  double potential_energy = 0.0; // E_pot  (natural: 0.5*||grad u^n||^2)
+  double total_energy     = 0.0; // E_tot = E_kin + E_pot  (natural, O(dt^2) drift)
   double dissipation_rate = 0.0; // D = gamma * ||u_t||^2 = 2*gamma*E_kin
   double energy_decay     = 0.0; // E_tot(t) - E_tot(0)
+
+  // -----------------------------------------------------------------------
+  // Staggered half-step energy — exactly conserved by the leapfrog integrator.
+  //
+  //   E^{n+1/2}_stag  =  0.5 * ||(u^{n+1} - u^n)/dt||^2_M           (kinetic)
+  //                   +  0.5 *  a_h(u^n, u^{n+1})                    (potential)
+  //
+  // The kinetic term uses the lumped mass M (Gauss-Lobatto diagonal) so the
+  // inner product is the numerically exact discrete conserved quantity.
+  // The potential a_h is the full discrete bilinear form: volume grad-grad
+  // term for CG, and volume + SIPG face penalty terms for DG.
+  //
+  // For the theta-scheme (which tracks v^n explicitly) the staggered formula
+  // is defined analogously using the backward difference (u^n - u^{n-1})/dt
+  // so that all three solvers expose a comparable observable.
+  // -----------------------------------------------------------------------
+  double stag_kinetic_energy   = 0.0; // 0.5 * ||(u^{n+1}-u^n)/dt||^2_M
+  double stag_potential_energy = 0.0; // 0.5 * a_h(u^n, u^{n+1})
+  double stag_total_energy     = 0.0; // stag_kin + stag_pot
+  double stag_energy_decay     = 0.0; // stag_total(t) - stag_total(0)
 };
 
 /**
@@ -55,12 +75,15 @@ write_energy_history_csv(const std::vector<EnergyData> &history,
 {
   std::ofstream out(filename);
   out << "time,kinetic_energy,potential_energy,total_energy,"
-         "dissipation_rate,energy_decay\n";
+         "dissipation_rate,energy_decay,"
+         "stag_kinetic_energy,stag_potential_energy,stag_total_energy,stag_energy_decay\n";
 
   for (const auto &e : history)
     out << e.time << ',' << e.kinetic_energy << ',' << e.potential_energy
         << ',' << e.total_energy << ',' << e.dissipation_rate << ','
-        << e.energy_decay << '\n';
+        << e.energy_decay << ','
+        << e.stag_kinetic_energy << ',' << e.stag_potential_energy << ','
+        << e.stag_total_energy  << ',' << e.stag_energy_decay << '\n';
 }
 
 /**

@@ -305,12 +305,14 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
 
       wtime += timer.wall_time();
 
+      // Record energy BEFORE updating old_solution_u_/v_ so that
+      // compute_energy() sees:
+      //   solution_u_     = u^n  (just solved)
+      //   old_solution_u_ = u^{n-1}  (needed for staggered backward-diff kinetic)
+      energy_history_.push_back(compute_energy());
+
       old_solution_u_ = solution_u_;
       old_solution_v_ = solution_v_;
-
-      // Energy is cheap here (two sparse matvecs + dot products), so record
-      // it every step for a fine-grained conservation history.
-      energy_history_.push_back(compute_energy());
 
       if (write_output && timestep_number_ % 10 == 0)
         output_results(timestep_number_);
@@ -352,24 +354,62 @@ WaveSolverTheta<dim>::compute_energy() const
 {
   TrilinosWrappers::MPI::Vector tmp(locally_owned_dofs_, MPI_COMM_WORLD);
 
-  // E_kin = 0.5 * v^T M v
+  // -----------------------------------------------------------------------
+  // 1. EXACT (natural) energy — uses explicitly-tracked velocity v^n.
+  //    E_kin = 0.5 * v^T M v
+  //    E_pot = 0.5 * u^T A u
+  // -----------------------------------------------------------------------
   mass_matrix_.vmult(tmp, solution_v_);
   const double kin = 0.5 * (solution_v_ * tmp);
 
-  // E_pot = 0.5 * u^T A u
   laplace_matrix_.vmult(tmp, solution_u_);
   const double pot = 0.5 * (solution_u_ * tmp);
 
+  // -----------------------------------------------------------------------
+  // 2. STAGGERED energy — backward-difference approximation to the half-step
+  //    leapfrog observable, so all three solvers expose a comparable metric.
+  //
+  //    v_{n-1/2}  = (u^n - u^{n-1}) / dt
+  //    E_kin_stag = 0.5 * v_{n-1/2}^T M v_{n-1/2}
+  //    E_pot_stag = 0.5 * (u^{n-1})^T A u^n  =  0.5 * a(u^{n-1}, u^n)
+  //
+  //    Called BEFORE `old_solution_u_ = solution_u_` in run(), so:
+  //      solution_u_     = u^n   (just computed this step)
+  //      old_solution_u_ = u^{n-1}
+  // -----------------------------------------------------------------------
+  TrilinosWrappers::MPI::Vector diff(locally_owned_dofs_, MPI_COMM_WORLD);
+  diff  = solution_u_;
+  diff -= old_solution_u_; // diff = u^n - u^{n-1}
+  diff /= time_step_;      // diff = v_{n-1/2}
+
+  mass_matrix_.vmult(tmp, diff);
+  const double kin_stag = 0.5 * (diff * tmp);
+
+  // a(u^{n-1}, u^n) = old_u^T A u^n
+  laplace_matrix_.vmult(tmp, solution_u_);
+  const double pot_stag = 0.5 * (old_solution_u_ * tmp);
+
+  // -----------------------------------------------------------------------
+  // Lazy-initialise reference energies.
+  // -----------------------------------------------------------------------
   if (initial_total_energy_ < 0.0)
     initial_total_energy_ = kin + pot;
+  if (initial_stag_total_energy_ < 0.0)
+    initial_stag_total_energy_ = kin_stag + pot_stag;
 
   EnergyData e;
   e.time             = time_;
+  // Natural (exact) energy
   e.kinetic_energy   = kin;
   e.potential_energy = pot;
   e.total_energy     = kin + pot;
   e.dissipation_rate = 2.0 * gamma_ * kin; // D = gamma * v^T M v = 2*gamma*E_kin
   e.energy_decay     = e.total_energy - initial_total_energy_;
+  // Staggered (backward-diff) energy
+  e.stag_kinetic_energy   = kin_stag;
+  e.stag_potential_energy = pot_stag;
+  e.stag_total_energy     = kin_stag + pot_stag;
+  e.stag_energy_decay     = e.stag_total_energy - initial_stag_total_energy_;
   return e;
 }
 

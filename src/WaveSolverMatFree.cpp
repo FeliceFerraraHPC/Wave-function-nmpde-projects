@@ -155,6 +155,24 @@ WaveSolverMatFree<dim>::setup(const Triangulation<dim> &tria)
   old_solution_.reinit(solution_);
   old_old_solution_.reinit(solution_);
 
+  // Build the lumped (Gauss-Lobatto diagonal) mass vector once.
+  // With GL nodes and quadrature the mass matrix is diagonal: M_ii = w_i.
+  // We store the raw weights (not inverted) so we can use them as a
+  // dot-product weight in the staggered kinetic energy E_kin_stag = 0.5*v^T M v.
+  lumped_mass_.reinit(solution_);
+  {
+    FEEvaluation<dim, fe_degree> fe_eval(matrix_free_data_);
+    for (unsigned int cell = 0; cell < matrix_free_data_.n_cell_batches(); ++cell)
+      {
+        fe_eval.reinit(cell);
+        for (const unsigned int q : fe_eval.quadrature_point_indices())
+          fe_eval.submit_value(make_vectorized_array(1.0), q);
+        fe_eval.integrate(EvaluationFlags::values);
+        fe_eval.distribute_local_to_global(lumped_mass_);
+      }
+    lumped_mass_.compress(VectorOperation::add);
+  }
+
   pcout_ << "   [MatFree-CG] DoFs: " << dof_handler_.n_dofs() << std::endl;
 }
 
@@ -302,41 +320,58 @@ template <int dim>
 EnergyData
 WaveSolverMatFree<dim>::compute_energy() const
 {
-  // solution_ = u^{n+1}, old_solution_ = u^n, old_old_solution_ = u^{n-1}
-  // (true right after wave_op.apply() in run(), see the swap sequence there).
+  // After the swap sequence in run():
+  //   solution_         = u^{n+1}   (just computed)
+  //   old_solution_     = u^n
+  //   old_old_solution_ = u^{n-1}
+
   solution_.update_ghost_values();
   old_solution_.update_ghost_values();
   old_old_solution_.update_ghost_values();
 
+  // -----------------------------------------------------------------------
+  // Common FEValues setup (consistent Gauss quadrature for both energies).
+  // -----------------------------------------------------------------------
   const QGauss<dim>   quadrature(fe_degree + 1);
   FEValues<dim>       fe_values(mapping_, fe_, quadrature,
                                 update_values | update_gradients |
                                   update_JxW_values);
 
   const unsigned int n_q = quadrature.size();
-  std::vector<double>         u_next(n_q), u_prev(n_q);
-  std::vector<Tensor<1, dim>> grad_u_curr(n_q);
 
-  double       local_kin  = 0.0;
-  double       local_pot  = 0.0;
-  const double inv_2dt    = 1.0 / (2.0 * time_step_);
+  std::vector<double>         u_next(n_q);     // u^{n+1}
+  std::vector<double>         u_prev(n_q);     // u^{n-1}
+  std::vector<Tensor<1, dim>> grad_u_curr(n_q); // ∇u^n   (for natural E_pot and stag E_pot)
+  std::vector<Tensor<1, dim>> grad_u_next(n_q); // ∇u^{n+1} (for stag E_pot cross-term)
+
+  double local_kin      = 0.0; // natural kinetic
+  double local_pot      = 0.0; // natural potential
+  double local_pot_stag = 0.0; // staggered potential: ½ ∫ ∇u^n · ∇u^{n+1} dx
+
+  const double inv_2dt = 1.0 / (2.0 * time_step_);
 
   for (const auto &cell : dof_handler_.active_cell_iterators())
     if (cell->is_locally_owned())
       {
         fe_values.reinit(cell);
 
-        fe_values.get_function_values(solution_, u_next);           // u^{n+1}
-        fe_values.get_function_values(old_old_solution_, u_prev);   // u^{n-1}
-        fe_values.get_function_gradients(old_solution_, grad_u_curr); // grad u^n
+        fe_values.get_function_values(solution_,         u_next);       // u^{n+1}
+        fe_values.get_function_values(old_old_solution_, u_prev);       // u^{n-1}
+        fe_values.get_function_gradients(old_solution_,  grad_u_curr);  // ∇u^n
+        fe_values.get_function_gradients(solution_,      grad_u_next);  // ∇u^{n+1}
 
         for (unsigned int q = 0; q < n_q; ++q)
           {
-            const double v_val = (u_next[q] - u_prev[q]) * inv_2dt;
+            const double v_nat = (u_next[q] - u_prev[q]) * inv_2dt;
             const double JxW   = fe_values.JxW(q);
 
-            local_kin += 0.5 * v_val * v_val * JxW;
+            // --- Natural energy (collocated, O(dt^2) drift) ---
+            local_kin += 0.5 * v_nat * v_nat * JxW;
             local_pot += 0.5 * (grad_u_curr[q] * grad_u_curr[q]) * JxW;
+
+            // --- Staggered potential: ½ a_h(u^n, u^{n+1}) — volume term ---
+            // For CG the bilinear form a_h is purely volumetric (no face terms).
+            local_pot_stag += 0.5 * (grad_u_curr[q] * grad_u_next[q]) * JxW;
           }
       }
 
@@ -344,19 +379,55 @@ WaveSolverMatFree<dim>::compute_energy() const
   old_solution_.zero_out_ghost_values();
   old_old_solution_.zero_out_ghost_values();
 
-  const double kin = Utilities::MPI::sum(local_kin, MPI_COMM_WORLD);
-  const double pot = Utilities::MPI::sum(local_pot, MPI_COMM_WORLD);
+  const double kin      = Utilities::MPI::sum(local_kin,      MPI_COMM_WORLD);
+  const double pot      = Utilities::MPI::sum(local_pot,      MPI_COMM_WORLD);
+  const double pot_stag = Utilities::MPI::sum(local_pot_stag, MPI_COMM_WORLD);
 
+  // -----------------------------------------------------------------------
+  // Staggered kinetic: EXACT lumped-mass inner product.
+  //
+  //   E_kin_stag = ½ * sum_i  m_i * ((u^{n+1}_i - u^n_i) / dt)^2
+  //
+  // where m_i = lumped_mass_[i] are the Gauss-Lobatto quadrature weights
+  // (the exact diagonal entries of the GL mass matrix).  This is the
+  // numerically exact discrete conserved quantity for the leapfrog scheme.
+  // No FEValues loop is needed: it reduces to a single pass over locally
+  // owned DOFs — O(N) and cache-friendly.
+  // -----------------------------------------------------------------------
+  double local_kin_stag = 0.0;
+  const double inv_dt_sq = 1.0 / (time_step_ * time_step_);
+  for (unsigned int i = 0; i < solution_.locally_owned_size(); ++i)
+    {
+      const double diff = solution_.local_element(i) - old_solution_.local_element(i);
+      local_kin_stag += lumped_mass_.local_element(i) * diff * diff;
+    }
+  const double kin_stag =
+    0.5 * inv_dt_sq * Utilities::MPI::sum(local_kin_stag, MPI_COMM_WORLD);
+
+  // -----------------------------------------------------------------------
+  // Lazy-initialise reference energies (first call = t≈0 snapshot).
+  // -----------------------------------------------------------------------
   if (initial_total_energy_ < 0.0)
     initial_total_energy_ = kin + pot;
+  if (initial_stag_total_energy_ < 0.0)
+    initial_stag_total_energy_ = kin_stag + pot_stag;
 
+  // -----------------------------------------------------------------------
+  // Assemble and return the EnergyData snapshot.
+  // -----------------------------------------------------------------------
   EnergyData e;
   e.time             = time_ - time_step_; // time level of old_solution_ (u^n)
+  // Natural energy
   e.kinetic_energy   = kin;
   e.potential_energy = pot;
   e.total_energy     = kin + pot;
   e.dissipation_rate = 2.0 * gamma_ * kin; // D = gamma * ||u_t||^2 = 2*gamma*E_kin
   e.energy_decay     = e.total_energy - initial_total_energy_;
+  // Staggered energy
+  e.stag_kinetic_energy   = kin_stag;
+  e.stag_potential_energy = pot_stag;
+  e.stag_total_energy     = kin_stag + pot_stag;
+  e.stag_energy_decay     = e.stag_total_energy - initial_stag_total_energy_;
   return e;
 }
 

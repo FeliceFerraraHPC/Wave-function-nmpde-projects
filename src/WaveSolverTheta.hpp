@@ -81,15 +81,24 @@ public:
                 const Function<dim>  &exact_solution) const override;
 
   /**
-   * Energy of the current state, computed *exactly* (no central-difference
-   * approximation) from the already-assembled mass and stiffness matrices,
-   * since this solver tracks velocity v = u_t explicitly:
-   *   E_kin = 0.5 * v^T M v
-   *   E_pot = 0.5 * u^T A u
-   *   D     = gamma * v^T M v = 2*gamma*E_kin
-   * This is precisely the energy norm implied by the weak form the solver
-   * itself uses to march u and v forward, so it's an exact discrete energy,
-   * not a quadrature approximation of the continuous one.
+   * Energy of the current state.
+   *
+   * Two diagnostics are returned:
+   *
+   * 1. EXACT (natural) energy — uses the explicitly-tracked velocity v^n:
+   *      E_kin = 0.5 * v^T M v,   E_pot = 0.5 * u^T A u
+   *    This is O(1) accurate (no dt error) because the theta-scheme maintains
+   *    v^n as an explicit variable.
+   *
+   * 2. STAGGERED energy — mimics the leapfrog staggered observable so that
+   *    all three solvers expose a comparable metric:
+   *      v_{n-1/2} = (u^n - u^{n-1}) / dt   (backward difference)
+   *      E_kin_stag = 0.5 * v_{n-1/2}^T M v_{n-1/2}
+   *      E_pot_stag = 0.5 * (u^{n-1})^T A u^n  = 0.5 * a(u^{n-1}, u^n)
+   *
+   * NOTE: compute_energy() must be called BEFORE old_solution_u_ is updated
+   * (i.e. before `old_solution_u_ = solution_u_`) so that old_solution_u_
+   * still holds u^{n-1} when this function runs.  run() guarantees this order.
    */
   EnergyData
   compute_energy() const override;
@@ -159,7 +168,8 @@ private:
   unsigned int timestep_number_ = 0;
 
   std::vector<EnergyData> energy_history_;
-  mutable double          initial_total_energy_ = -1.0; // lazy-cached E_tot(0)
+  mutable double          initial_total_energy_      = -1.0; // lazy-cached E_tot(0)
+  mutable double          initial_stag_total_energy_ = -1.0; // lazy-cached stag E_tot(0)
 };
 
 #endif // WAVE_SOLVER_THETA_HPP

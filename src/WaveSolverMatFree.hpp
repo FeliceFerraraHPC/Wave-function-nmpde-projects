@@ -104,13 +104,25 @@ public:
                 const Function<dim>  &exact_solution) const override;
 
   /**
-   * Energy at the most recently completed step. Since leapfrog only stores
-   * displacement snapshots, velocity is estimated via central difference:
-   *   v^n ~ (u^{n+1} - u^{n-1}) / (2*dt)
-   * using solution_ (u^{n+1}), old_old_solution_ (u^{n-1}), and the
-   * gradient of old_solution_ (u^n) for the potential energy. This mirrors
-   * exactly the convention used in the original WaveOperation::compute_energy,
-   * extended with the dissipation rate D = gamma * v^2 = 2*gamma*E_kin.
+   * Energy at the most recently completed step.
+   *
+   * Two diagnostics are returned in the same EnergyData snapshot:
+   *
+   * 1. NATURAL (central-difference) energy — fields kinetic/potential/total_energy.
+   *    Kinetic: v^n ≈ (u^{n+1} - u^{n-1}) / (2dt), evaluated via consistent
+   *    Gauss quadrature.  Potential: 0.5*||grad u^n||^2.  This is what the
+   *    literature calls the "collocated" leapfrog energy; it drifts by O(dt^2)
+   *    per step because kinetic and potential live at different half-integer levels.
+   *
+   * 2. STAGGERED (half-step) energy — fields stag_kinetic/stag_potential/stag_total.
+   *    Kinetic: 0.5 * ||(u^{n+1} - u^n)/dt||^2_M where M is the lumped
+   *    (Gauss-Lobatto diagonal) mass — the numerically exact discrete invariant.
+   *    Potential: 0.5 * a_h(u^n, u^{n+1}) — volume grad-grad cross-term.
+   *    This quantity is exactly conserved by the leapfrog integrator (zero drift
+   *    up to floating-point rounding for gamma=0, no forcing).
+   *
+   * The gap  |E_nat - E_stag| / E_stag  is itself an observable: it measures the
+   * O(dt^2) approximation error in the natural diagnostic and should scale as dt^2.
    */
   EnergyData
   compute_energy() const override;
@@ -150,6 +162,11 @@ private:
   LinearAlgebra::distributed::Vector<double> old_solution_;
   LinearAlgebra::distributed::Vector<double> old_old_solution_;
 
+  // Lumped (Gauss-Lobatto diagonal) mass vector.  Built once in setup() and
+  // used in compute_energy() to form the exact discrete kinetic inner product
+  // for the staggered energy: E_kin_stag = 0.5 * diff^T M_lumped diff.
+  LinearAlgebra::distributed::Vector<double> lumped_mass_;
+
   const double       cfl_number_;
   const unsigned int output_timestep_skip_;
   const double       gamma_; // damping coefficient in u_tt - Delta u + gamma*u_t = 0
@@ -157,7 +174,8 @@ private:
   double             time_step_ = 1.0;
 
   std::vector<EnergyData> energy_history_;
-  mutable double          initial_total_energy_ = -1.0;
+  mutable double          initial_total_energy_      = -1.0;
+  mutable double          initial_stag_total_energy_ = -1.0; // lazy-cached stag E_tot(0)
 };
 
 #endif // WAVE_SOLVER_MATFREE_HPP

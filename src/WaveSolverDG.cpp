@@ -1,4 +1,5 @@
 #include "WaveSolverDG.hpp"
+#include <limits>
 
 // ============================================================================
 // WaveOperationDG — SIPG matrix-free operator
@@ -245,6 +246,21 @@ void WaveSolverDG<dim>::setup(const Triangulation<dim> &tria)
   old_solution_.reinit(solution_);
   old_old_solution_.reinit(solution_);
 
+  // Build lumped (GL diagonal) mass vector — same procedure as CG.
+  lumped_mass_.reinit(solution_);
+  {
+    FEEvaluation<dim, fe_degree> fe_eval(matrix_free_data_);
+    for (unsigned int cell = 0; cell < matrix_free_data_.n_cell_batches(); ++cell)
+    {
+      fe_eval.reinit(cell);
+      for (const unsigned int q : fe_eval.quadrature_point_indices())
+        fe_eval.submit_value(make_vectorized_array(1.0), q);
+      fe_eval.integrate(EvaluationFlags::values);
+      fe_eval.distribute_local_to_global(lumped_mass_);
+    }
+    lumped_mass_.compress(VectorOperation::add);
+  }
+
   pcout_ << "   [MatFree-DG] DoFs: " << dof_handler_.n_dofs() << std::endl;
 }
 
@@ -382,22 +398,46 @@ template <int dim>
 EnergyData
 WaveSolverDG<dim>::compute_energy() const
 {
-  // solution_ = u^{n+1}, old_solution_ = u^n, old_old_solution_ = u^{n-1}
+  // After the swap sequence in run():
+  //   solution_         = u^{n+1}   (just computed)
+  //   old_solution_     = u^n
+  //   old_old_solution_ = u^{n-1}
+
   solution_.update_ghost_values();
   old_solution_.update_ghost_values();
   old_old_solution_.update_ghost_values();
 
+  // -----------------------------------------------------------------------
+  // SIPG penalty parameter (same formula as WaveOperationDG).
+  // Compute h = min cell diameter once for the whole energy call.
+  // -----------------------------------------------------------------------
+  double local_min_h = std::numeric_limits<double>::max();
+  for (const auto &cell : dof_handler_.active_cell_iterators())
+    if (cell->is_locally_owned())
+      local_min_h = std::min(local_min_h, cell->diameter());
+  const double global_min_h =
+      -Utilities::MPI::max(-local_min_h, MPI_COMM_WORLD);
+  const double penalty_factor =
+      1.5 * (fe_degree + 1) * (fe_degree + dim) / double(dim);
+  const double sigma = penalty_factor / global_min_h;
+
+  // -----------------------------------------------------------------------
+  // Volume quadrature — natural (collocated) and staggered potential.
+  // -----------------------------------------------------------------------
   const QGauss<dim> quadrature(fe_degree + 1);
   FEValues<dim> fe_values(mapping_, fe_, quadrature,
                           update_values | update_gradients |
                               update_JxW_values);
-
   const unsigned int n_q = quadrature.size();
+
   std::vector<double> u_next(n_q), u_prev(n_q);
-  std::vector<Tensor<1, dim>> grad_u_curr(n_q);
+  std::vector<Tensor<1, dim>> grad_u_curr(n_q); // ∇u^n
+  std::vector<Tensor<1, dim>> grad_u_next(n_q); // ∇u^{n+1}
 
   double local_kin = 0.0;
   double local_pot = 0.0;
+  double local_pot_stag = 0.0; // staggered volume potential (partial a_h)
+
   const double inv_2dt = 1.0 / (2.0 * time_step_);
 
   for (const auto &cell : dof_handler_.active_cell_iterators())
@@ -407,17 +447,153 @@ WaveSolverDG<dim>::compute_energy() const
 
       fe_values.get_function_values(solution_, u_next);
       fe_values.get_function_values(old_old_solution_, u_prev);
-      fe_values.get_function_gradients(old_solution_, grad_u_curr);
+      fe_values.get_function_gradients(old_solution_, grad_u_curr); // ∇u^n
+      fe_values.get_function_gradients(solution_, grad_u_next);     // ∇u^{n+1}
 
       for (unsigned int q = 0; q < n_q; ++q)
       {
-        const double v_val = (u_next[q] - u_prev[q]) * inv_2dt;
+        const double v_nat = (u_next[q] - u_prev[q]) * inv_2dt;
         const double JxW = fe_values.JxW(q);
 
-        local_kin += 0.5 * v_val * v_val * JxW;
+        // Natural (volume-only, unchanged from before)
+        local_kin += 0.5 * v_nat * v_nat * JxW;
         local_pot += 0.5 * (grad_u_curr[q] * grad_u_curr[q]) * JxW;
+
+        // Staggered potential volume part: ½ ∫ ∇u^n · ∇u^{n+1} dx
+        local_pot_stag += 0.5 * (grad_u_curr[q] * grad_u_next[q]) * JxW;
       }
     }
+
+  // -----------------------------------------------------------------------
+  // Face quadrature — staggered potential SIPG face terms.
+  //
+  // The full SIPG bilinear form is:
+  //   a_h(u, w) = sum_K ∫_K ∇u·∇w dx
+  //             - sum_{f∈F_int} ∫_f ({{∇u·n}}[w] + {{∇w·n}}[u]) ds
+  //             + sum_{f∈F_int} sigma ∫_f [u][w] ds
+  //             - sum_{f∈F_bnd} ∫_f (∇u·n*w + ∇w·n*u) ds
+  //             + sum_{f∈F_bnd} 2*sigma ∫_f u*w ds          (Dirichlet u=0)
+  //
+  // Here we compute the face contribution to ½ a_h(u^n, u^{n+1}).
+  //
+  // Parallel note: each interior face f is shared by cells K+ and K-.
+  // We process f exactly once by choosing the cell with smaller
+  // subdomain_id (or, within the same rank, smaller CellId).
+  // -----------------------------------------------------------------------
+  const QGauss<dim - 1> face_quad(fe_degree + 1);
+  const unsigned int n_fq = face_quad.size();
+
+  FEFaceValues<dim> fv_curr(mapping_, fe_, face_quad,
+                            update_values | update_gradients |
+                                update_JxW_values | update_normal_vectors);
+  FEFaceValues<dim> fv_next(mapping_, fe_, face_quad,
+                            update_values | update_gradients);
+  FEFaceValues<dim> fv_nbr_curr(mapping_, fe_, face_quad,
+                                update_values | update_gradients);
+  FEFaceValues<dim> fv_nbr_next(mapping_, fe_, face_quad,
+                                update_values | update_gradients);
+
+  std::vector<double> uc(n_fq), un(n_fq), uc_nbr(n_fq), un_nbr(n_fq);
+  std::vector<Tensor<1, dim>> gc(n_fq), gn(n_fq), gc_nbr(n_fq), gn_nbr(n_fq);
+
+  double local_face_stag = 0.0;
+
+  for (const auto &cell : dof_handler_.active_cell_iterators())
+  {
+    if (!cell->is_locally_owned())
+      continue;
+
+    for (unsigned int f = 0; f < cell->n_faces(); ++f)
+    {
+      if (cell->at_boundary(f))
+      {
+        // ----------------------------------------------------------
+        // Boundary face: Dirichlet u = 0 via SIPG.
+        // Ghost value u_ext = 0, so jump = u_int, avg_grad = grad_int.
+        // Contribution to ½ a_h(u^n, u^{n+1}):
+        //   ½ ∫_f [ -∇u^n·n * u^{n+1}  -  ∇u^{n+1}·n * u^n
+        //           + 2*sigma * u^n * u^{n+1} ] ds
+        // ----------------------------------------------------------
+        fv_curr.reinit(cell, f);
+        fv_next.reinit(cell, f);
+
+        fv_curr.get_function_values(old_solution_, uc);
+        fv_next.get_function_values(solution_, un);
+        fv_curr.get_function_gradients(old_solution_, gc);
+        fv_next.get_function_gradients(solution_, gn);
+
+        for (unsigned int q = 0; q < n_fq; ++q)
+        {
+          const auto &nrm = fv_curr.normal_vector(q);
+          const double JxW = fv_curr.JxW(q);
+
+          const double contrib =
+              -(gc[q] * nrm) * un[q]         // -∇u^n·n * u^{n+1}
+              - (gn[q] * nrm) * uc[q]        // -∇u^{n+1}·n * u^n
+              + 2.0 * sigma * uc[q] * un[q]; // 2σ u^n u^{n+1}
+
+          local_face_stag += 0.5 * contrib * JxW;
+        }
+      }
+      else
+      {
+        // ----------------------------------------------------------
+        // Interior face: process once per face using subdomain_id.
+        // ----------------------------------------------------------
+        const auto neighbor = cell->neighbor(f);
+
+        // Process this face only from the cell with smaller
+        // subdomain_id; break ties with CellId.
+        const bool skip =
+            (cell->subdomain_id() > neighbor->subdomain_id()) ||
+            (cell->subdomain_id() == neighbor->subdomain_id() &&
+             neighbor->id() < cell->id());
+        if (skip)
+          continue;
+
+        const unsigned int nbr_f = cell->neighbor_of_neighbor(f);
+
+        fv_curr.reinit(cell, f);
+        fv_next.reinit(cell, f);
+        fv_nbr_curr.reinit(neighbor, nbr_f);
+        fv_nbr_next.reinit(neighbor, nbr_f);
+
+        fv_curr.get_function_values(old_solution_, uc);
+        fv_next.get_function_values(solution_, un);
+        fv_curr.get_function_gradients(old_solution_, gc);
+        fv_next.get_function_gradients(solution_, gn);
+        fv_nbr_curr.get_function_values(old_solution_, uc_nbr);
+        fv_nbr_next.get_function_values(solution_, un_nbr);
+        fv_nbr_curr.get_function_gradients(old_solution_, gc_nbr);
+        fv_nbr_next.get_function_gradients(solution_, gn_nbr);
+
+        for (unsigned int q = 0; q < n_fq; ++q)
+        {
+          // n^+ = outward normal from cell (K^+)
+          const auto &nrm = fv_curr.normal_vector(q);
+          const double JxW = fv_curr.JxW(q);
+
+          // Scalar jumps [u] = u^+ - u^-  (consistent with local_apply_face)
+          const double jmp_c = uc[q] - uc_nbr[q]; // [u^n]
+          const double jmp_n = un[q] - un_nbr[q]; // [u^{n+1}]
+
+          // Average gradients {{∇u}} = ½(∇u^+ + ∇u^-)
+          const Tensor<1, dim> avg_gc = 0.5 * (gc[q] + gc_nbr[q]);
+          const Tensor<1, dim> avg_gn = 0.5 * (gn[q] + gn_nbr[q]);
+
+          // Contribution to ½ a_h(u^n, u^{n+1}):
+          //   ½ ∫_f [ -{{∇u^n·n}}[u^{n+1}] - {{∇u^{n+1}·n}}[u^n]
+          //           + sigma [u^n][u^{n+1}] ] ds
+          const double contrib =
+              -(avg_gc * nrm) * jmp_n  // -{{∇u^n·n}}[u^{n+1}]
+              - (avg_gn * nrm) * jmp_c // -{{∇u^{n+1}·n}}[u^n]
+              + sigma * jmp_c * jmp_n; // σ [u^n][u^{n+1}]
+
+          local_face_stag += 0.5 * contrib * JxW;
+        }
+      }
+    }
+  }
 
   solution_.zero_out_ghost_values();
   old_solution_.zero_out_ghost_values();
@@ -425,17 +601,41 @@ WaveSolverDG<dim>::compute_energy() const
 
   const double kin = Utilities::MPI::sum(local_kin, MPI_COMM_WORLD);
   const double pot = Utilities::MPI::sum(local_pot, MPI_COMM_WORLD);
+  const double pot_stag_vol = Utilities::MPI::sum(local_pot_stag, MPI_COMM_WORLD);
+  const double pot_stag_face = Utilities::MPI::sum(local_face_stag, MPI_COMM_WORLD);
+  const double pot_stag = pot_stag_vol + pot_stag_face;
+
+  // -----------------------------------------------------------------------
+  // Staggered kinetic: exact lumped-mass inner product (same as CG).
+  // -----------------------------------------------------------------------
+  double local_kin_stag = 0.0;
+  const double inv_dt_sq = 1.0 / (time_step_ * time_step_);
+  for (unsigned int i = 0; i < solution_.locally_owned_size(); ++i)
+  {
+    const double diff = solution_.local_element(i) - old_solution_.local_element(i);
+    local_kin_stag += lumped_mass_.local_element(i) * diff * diff;
+  }
+  const double kin_stag =
+      0.5 * inv_dt_sq * Utilities::MPI::sum(local_kin_stag, MPI_COMM_WORLD);
 
   if (initial_total_energy_ < 0.0)
     initial_total_energy_ = kin + pot;
+  if (initial_stag_total_energy_ < 0.0)
+    initial_stag_total_energy_ = kin_stag + pot_stag;
 
   EnergyData e;
   e.time = time_ - time_step_;
+  // Natural energy (volume-only, unchanged from previous)
   e.kinetic_energy = kin;
   e.potential_energy = pot;
   e.total_energy = kin + pot;
   e.dissipation_rate = 2.0 * gamma_ * kin;
   e.energy_decay = e.total_energy - initial_total_energy_;
+  // Staggered energy (full SIPG a_h for potential)
+  e.stag_kinetic_energy = kin_stag;
+  e.stag_potential_energy = pot_stag;
+  e.stag_total_energy = kin_stag + pot_stag;
+  e.stag_energy_decay = e.stag_total_energy - initial_stag_total_energy_;
   return e;
 }
 

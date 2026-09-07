@@ -117,17 +117,23 @@ public:
                 const Function<dim>  &exact_solution) const override;
 
   /**
-   * Energy at the most recently completed step, computed from the volume
-   * terms only (0.5*v^2 kinetic + 0.5*|grad u|^2 potential), the same way
-   * as WaveSolverMatFree::compute_energy(), plus the dissipation rate
-   * D = gamma * v^2 = 2*gamma*E_kin. NOTE: for the SIPG DG bilinear
-   * form used here, the fully consistent discrete "energy" would also
-   * include the interior-face jump penalty term 0.5*sigma*integral of
-   * [u]^2 ds, which this volume-only version omits. For a solution that is
-   * well-resolved relative to the mesh, that term is small and this still
-   * gives a useful conservation/dissipation check; if you need an exact
-   * SIPG energy balance, the jump term should be added by looping over
-   * matrix_free_data_'s interior faces the same way local_apply_face() does.
+   * Energy at the most recently completed step.
+   *
+   * Two diagnostics are returned in the same EnergyData snapshot:
+   *
+   * 1. NATURAL (central-difference) energy — fields kinetic/potential/total_energy.
+   *    Volume-only (grad u^n term); omits SIPG face penalties.  This is the
+   *    same observable as the CG solver, enabling direct comparison.
+   *
+   * 2. STAGGERED (half-step) energy — fields stag_kinetic/stag_potential/stag_total.
+   *    Kinetic: 0.5 * ||(u^{n+1}-u^n)/dt||^2_M   (exact GL lumped-mass inner product)
+   *    Potential: 0.5 * a_h(u^n, u^{n+1})  — the FULL SIPG discrete bilinear form,
+   *    including interior-face jump penalty and boundary Dirichlet penalty terms.
+   *    This gives the true staggered discrete Hamiltonian for the SIPG leapfrog scheme.
+   *
+   * The gap |E_nat - E_stag| is informative: it quantifies the O(dt^2) drift
+   * in the natural diagnostic AND the effect of omitting face terms in the
+   * potential estimate.
    */
   EnergyData
   compute_energy() const override;
@@ -167,6 +173,9 @@ private:
   LinearAlgebra::distributed::Vector<double> old_solution_;
   LinearAlgebra::distributed::Vector<double> old_old_solution_;
 
+  // Lumped (GL diagonal) mass: used for the exact discrete kinetic energy.
+  LinearAlgebra::distributed::Vector<double> lumped_mass_;
+
   const double       cfl_number_;
   const unsigned int output_timestep_skip_;
   const double       gamma_; // damping coefficient in u_tt - Delta u + gamma*u_t = 0
@@ -174,7 +183,8 @@ private:
   double             time_step_ = 1.0;
 
   std::vector<EnergyData> energy_history_;
-  mutable double          initial_total_energy_ = -1.0;
+  mutable double          initial_total_energy_      = -1.0;
+  mutable double          initial_stag_total_energy_ = -1.0;
 };
 
 #endif // WAVE_SOLVER_DG_HPP
