@@ -10,6 +10,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 echo "Cleaning simulation output files in ${SCRIPT_DIR}..."
 
 # Remove .vtu and .pvtu files from root, build/, and subdirectories
-find "${SCRIPT_DIR}" -type f \( -name "solution_*.vtu" -o -name "solution_*.pvtu" -o -name "*.vtu" -o -name "*.pvtu" \) -exec rm -f {} +
+find "${SCRIPT_DIR}" -type f \( -name "solution_*.vtu" -o -name "solution_*.pvtu" -o -name "*.vtu" -o -name "*.pvtu" -o -name "*.csv" \) -exec rm -f {} +
 
 echo "Output files successfully cleaned!"

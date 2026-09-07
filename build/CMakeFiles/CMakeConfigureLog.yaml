@@ -61,8 +61,8 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-dfB8IM"
-      binary: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-dfB8IM"
+      source: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-L7GbPQ"
+      binary: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-L7GbPQ"
     cmakeVariables:
       CMAKE_CXX_FLAGS: ""
       CMAKE_CXX_FLAGS_DEBUG: "-g"
@@ -71,13 +71,13 @@ events:
       variable: "CMAKE_CXX_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-dfB8IM'
+        Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-L7GbPQ'
         
-        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_49b8a/fast
-        /usr/bin/gmake  -f CMakeFiles/cmTC_49b8a.dir/build.make CMakeFiles/cmTC_49b8a.dir/build
-        gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-dfB8IM'
-        Building CXX object CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o
-        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx   -v -o CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_3e772/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_3e772.dir/build.make CMakeFiles/cmTC_3e772.dir/build
+        gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-L7GbPQ'
+        Building CXX object CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o
+        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx   -v -o CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp
         Using built-in specs.
         COLLECT_GCC=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/g++
         Target: x86_64-mk-linux
@@ -85,8 +85,8 @@ events:
         Thread model: posix
         Supported LTO compression algorithms: zlib
         gcc version 11.2.0 (mk-2022.0) 
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_49b8a.dir/'
-         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/cc1plus -quiet -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include -D_GNU_SOURCE -D_REENTRANT /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_49b8a.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -o /tmp/cccWfkNc.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_3e772.dir/'
+         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/cc1plus -quiet -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include -D_GNU_SOURCE -D_REENTRANT /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_3e772.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -o /tmp/ccFQWobW.s
         GNU C++17 (mk-2022.0) version 11.2.0 (x86_64-mk-linux)
         	compiled by GNU C version 11.2.0, GMP version 6.2.1, MPFR version 4.1.0, MPC version 1.2.1, isl version isl-0.24-GMP
         
@@ -110,15 +110,15 @@ events:
         
         GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
         Compiler executable checksum: b49bf3a3f1e4ffc0069790508a65e0b5
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_49b8a.dir/'
-         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/as -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include --64 -o CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o /tmp/cccWfkNc.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_3e772.dir/'
+         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/as -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include --64 -o CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccFQWobW.s
         GNU assembler version 2.37 (x86_64-mk-linux) using BFD version (mk-2022.0) 2.37
         COMPILER_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/
         LIBRARY_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib:/u/sw/toolchains/gcc-glibc/11.2.0/base/lib
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.'
-        Linking CXX executable cmTC_49b8a
-        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_49b8a.dir/link.txt --verbose=1
-        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx  -v CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_49b8a 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.'
+        Linking CXX executable cmTC_3e772
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3e772.dir/link.txt --verbose=1
+        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx  -v CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_3e772 
         Using built-in specs.
         COLLECT_GCC=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/g++
         COLLECT_LTO_WRAPPER=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper
@@ -129,10 +129,10 @@ events:
         gcc version 11.2.0 (mk-2022.0) 
         COMPILER_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/
         LIBRARY_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib:/u/sw/toolchains/gcc-glibc/11.2.0/base/lib
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_49b8a' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_49b8a.'
-         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2 -plugin /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so -plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper -plugin-opt=-fresolution=/tmp/cc5xUPzT.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --eh-frame-hdr -m elf_x86_64 -dynamic-linker /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2 -o cmTC_49b8a /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0 -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../.. -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib --enable-new-dtags -lmpi -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtend.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crtn.o
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_49b8a' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_49b8a.'
-        gmake[1]: Leaving directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-dfB8IM'
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_3e772' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_3e772.'
+         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2 -plugin /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so -plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccSmyZe1.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --eh-frame-hdr -m elf_x86_64 -dynamic-linker /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2 -o cmTC_3e772 /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0 -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../.. -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib --enable-new-dtags -lmpi -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtend.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crtn.o
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_3e772' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_3e772.'
+        gmake[1]: Leaving directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-L7GbPQ'
         
       exitCode: 0
   -
@@ -172,13 +172,13 @@ events:
     message: |
       Parsed CXX implicit link information:
         link line regex: [^( *|.*[/\\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
-        ignore line: [Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-dfB8IM']
+        ignore line: [Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-L7GbPQ']
         ignore line: []
-        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_49b8a/fast]
-        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_49b8a.dir/build.make CMakeFiles/cmTC_49b8a.dir/build]
-        ignore line: [gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-dfB8IM']
-        ignore line: [Building CXX object CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o]
-        ignore line: [/u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx   -v -o CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_3e772/fast]
+        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_3e772.dir/build.make CMakeFiles/cmTC_3e772.dir/build]
+        ignore line: [gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-L7GbPQ']
+        ignore line: [Building CXX object CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o]
+        ignore line: [/u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx   -v -o CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o -c /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/g++]
         ignore line: [Target: x86_64-mk-linux]
@@ -186,8 +186,8 @@ events:
         ignore line: [Thread model: posix]
         ignore line: [Supported LTO compression algorithms: zlib]
         ignore line: [gcc version 11.2.0 (mk-2022.0) ]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_49b8a.dir/']
-        ignore line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/cc1plus -quiet -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include -D_GNU_SOURCE -D_REENTRANT /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_49b8a.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -o /tmp/cccWfkNc.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_3e772.dir/']
+        ignore line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/cc1plus -quiet -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include -D_GNU_SOURCE -D_REENTRANT /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_3e772.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -mtune=generic -march=x86-64 -version -o /tmp/ccFQWobW.s]
         ignore line: [GNU C++17 (mk-2022.0) version 11.2.0 (x86_64-mk-linux)]
         ignore line: [	compiled by GNU C version 11.2.0  GMP version 6.2.1  MPFR version 4.1.0  MPC version 1.2.1  isl version isl-0.24-GMP]
         ignore line: []
@@ -211,15 +211,15 @@ events:
         ignore line: []
         ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
         ignore line: [Compiler executable checksum: b49bf3a3f1e4ffc0069790508a65e0b5]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_49b8a.dir/']
-        ignore line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/as -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include --64 -o CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o /tmp/cccWfkNc.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_3e772.dir/']
+        ignore line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/as -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include --64 -o CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o /tmp/ccFQWobW.s]
         ignore line: [GNU assembler version 2.37 (x86_64-mk-linux) using BFD version (mk-2022.0) 2.37]
         ignore line: [COMPILER_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/]
         ignore line: [LIBRARY_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib:/u/sw/toolchains/gcc-glibc/11.2.0/base/lib]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.']
-        ignore line: [Linking CXX executable cmTC_49b8a]
-        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_49b8a.dir/link.txt --verbose=1]
-        ignore line: [/u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx  -v CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_49b8a ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.']
+        ignore line: [Linking CXX executable cmTC_3e772]
+        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3e772.dir/link.txt --verbose=1]
+        ignore line: [/u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx  -v CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_3e772 ]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/g++]
         ignore line: [COLLECT_LTO_WRAPPER=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper]
@@ -230,13 +230,13 @@ events:
         ignore line: [gcc version 11.2.0 (mk-2022.0) ]
         ignore line: [COMPILER_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/]
         ignore line: [LIBRARY_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib:/u/sw/toolchains/gcc-glibc/11.2.0/base/lib]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_49b8a' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_49b8a.']
-        link line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2 -plugin /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so -plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper -plugin-opt=-fresolution=/tmp/cc5xUPzT.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --eh-frame-hdr -m elf_x86_64 -dynamic-linker /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2 -o cmTC_49b8a /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0 -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../.. -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib --enable-new-dtags -lmpi -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtend.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crtn.o]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_3e772' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-shared-libgcc' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_3e772.']
+        link line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2 -plugin /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so -plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccSmyZe1.res -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lgcc --eh-frame-hdr -m elf_x86_64 -dynamic-linker /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2 -o cmTC_3e772 /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0 -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../.. -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib --enable-new-dtags -lmpi -lstdc++ -lm -lgcc_s -lgcc -lpthread -lc -lgcc_s -lgcc /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtend.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crtn.o]
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2] ==> ignore
           arg [-plugin] ==> ignore
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so] ==> ignore
           arg [-plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper] ==> ignore
-          arg [-plugin-opt=-fresolution=/tmp/cc5xUPzT.res] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccSmyZe1.res] ==> ignore
           arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
           arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
           arg [-plugin-opt=-pass-through=-lpthread] ==> ignore
@@ -249,7 +249,7 @@ events:
           arg [-dynamic-linker] ==> ignore
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2] ==> ignore
           arg [-o] ==> ignore
-          arg [cmTC_49b8a] ==> ignore
+          arg [cmTC_3e772] ==> ignore
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o] ==> obj [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o]
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o] ==> obj [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o]
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o] ==> obj [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o]
@@ -262,7 +262,7 @@ events:
           arg [-L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../..] ==> dir [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../..]
           arg [-L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib] ==> dir [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib]
           arg [-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib] ==> dir [/u/sw/toolchains/gcc-glibc/11.2.0/base/lib]
-          arg [CMakeFiles/cmTC_49b8a.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [CMakeFiles/cmTC_3e772.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
           arg [-rpath] ==> ignore
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/base/lib] ==> ignore
           arg [-rpath] ==> ignore
@@ -306,8 +306,8 @@ events:
     checks:
       - "Detecting C compiler ABI info"
     directories:
-      source: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-YBK3XD"
-      binary: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-YBK3XD"
+      source: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-piA1BO"
+      binary: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-piA1BO"
     cmakeVariables:
       CMAKE_C_FLAGS: ""
       CMAKE_C_FLAGS_DEBUG: "-g"
@@ -316,13 +316,13 @@ events:
       variable: "CMAKE_C_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-YBK3XD'
+        Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-piA1BO'
         
-        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_494b5/fast
-        /usr/bin/gmake  -f CMakeFiles/cmTC_494b5.dir/build.make CMakeFiles/cmTC_494b5.dir/build
-        gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-YBK3XD'
-        Building C object CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o
-        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicc   -v -o CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o -c /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_f1888/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_f1888.dir/build.make CMakeFiles/cmTC_f1888.dir/build
+        gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-piA1BO'
+        Building C object CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o
+        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicc   -v -o CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o -c /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c
         Using built-in specs.
         COLLECT_GCC=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/gcc
         Target: x86_64-mk-linux
@@ -330,8 +330,8 @@ events:
         Thread model: posix
         Supported LTO compression algorithms: zlib
         gcc version 11.2.0 (mk-2022.0) 
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_494b5.dir/'
-         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/cc1 -quiet -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include -D_REENTRANT /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_494b5.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -mtune=generic -march=x86-64 -version -o /tmp/cchUDrcT.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_f1888.dir/'
+         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/cc1 -quiet -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include -D_REENTRANT /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_f1888.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -mtune=generic -march=x86-64 -version -o /tmp/ccQke1Ij.s
         GNU C17 (mk-2022.0) version 11.2.0 (x86_64-mk-linux)
         	compiled by GNU C version 11.2.0, GMP version 6.2.1, MPFR version 4.1.0, MPC version 1.2.1, isl version isl-0.24-GMP
         
@@ -352,15 +352,15 @@ events:
         
         GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
         Compiler executable checksum: bbb51fd7c61b6cf0d289d5ccc7aaf585
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_494b5.dir/'
-         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/as -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include --64 -o CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o /tmp/cchUDrcT.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_f1888.dir/'
+         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/as -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include --64 -o CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o /tmp/ccQke1Ij.s
         GNU assembler version 2.37 (x86_64-mk-linux) using BFD version (mk-2022.0) 2.37
         COMPILER_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/
         LIBRARY_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib:/u/sw/toolchains/gcc-glibc/11.2.0/base/lib
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.'
-        Linking C executable cmTC_494b5
-        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_494b5.dir/link.txt --verbose=1
-        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicc  -v CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o -o cmTC_494b5 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.'
+        Linking C executable cmTC_f1888
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f1888.dir/link.txt --verbose=1
+        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicc  -v CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o -o cmTC_f1888 
         Using built-in specs.
         COLLECT_GCC=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/gcc
         COLLECT_LTO_WRAPPER=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper
@@ -371,10 +371,10 @@ events:
         gcc version 11.2.0 (mk-2022.0) 
         COMPILER_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/
         LIBRARY_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib:/u/sw/toolchains/gcc-glibc/11.2.0/base/lib
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_494b5' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_494b5.'
-         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2 -plugin /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so -plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccz53QfL.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --eh-frame-hdr -m elf_x86_64 -dynamic-linker /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2 -o cmTC_494b5 /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0 -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../.. -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib --enable-new-dtags -lmpi -lgcc --push-state --as-needed -lgcc_s --pop-state -lpthread -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtend.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crtn.o
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_494b5' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_494b5.'
-        gmake[1]: Leaving directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-YBK3XD'
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_f1888' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_f1888.'
+         /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2 -plugin /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so -plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccvcUwNL.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --eh-frame-hdr -m elf_x86_64 -dynamic-linker /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2 -o cmTC_f1888 /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0 -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../.. -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib --enable-new-dtags -lmpi -lgcc --push-state --as-needed -lgcc_s --pop-state -lpthread -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtend.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crtn.o
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_f1888' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_f1888.'
+        gmake[1]: Leaving directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-piA1BO'
         
       exitCode: 0
   -
@@ -408,13 +408,13 @@ events:
     message: |
       Parsed C implicit link information:
         link line regex: [^( *|.*[/\\])(ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
-        ignore line: [Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-YBK3XD']
+        ignore line: [Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-piA1BO']
         ignore line: []
-        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_494b5/fast]
-        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_494b5.dir/build.make CMakeFiles/cmTC_494b5.dir/build]
-        ignore line: [gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-YBK3XD']
-        ignore line: [Building C object CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o]
-        ignore line: [/u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicc   -v -o CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o -c /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c]
+        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_f1888/fast]
+        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_f1888.dir/build.make CMakeFiles/cmTC_f1888.dir/build]
+        ignore line: [gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-piA1BO']
+        ignore line: [Building C object CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o]
+        ignore line: [/u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicc   -v -o CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o -c /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/gcc]
         ignore line: [Target: x86_64-mk-linux]
@@ -422,8 +422,8 @@ events:
         ignore line: [Thread model: posix]
         ignore line: [Supported LTO compression algorithms: zlib]
         ignore line: [gcc version 11.2.0 (mk-2022.0) ]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_494b5.dir/']
-        ignore line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/cc1 -quiet -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include -D_REENTRANT /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_494b5.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -mtune=generic -march=x86-64 -version -o /tmp/cchUDrcT.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_f1888.dir/']
+        ignore line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/cc1 -quiet -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include -D_REENTRANT /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_f1888.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -mtune=generic -march=x86-64 -version -o /tmp/ccQke1Ij.s]
         ignore line: [GNU C17 (mk-2022.0) version 11.2.0 (x86_64-mk-linux)]
         ignore line: [	compiled by GNU C version 11.2.0  GMP version 6.2.1  MPFR version 4.1.0  MPC version 1.2.1  isl version isl-0.24-GMP]
         ignore line: []
@@ -444,15 +444,15 @@ events:
         ignore line: []
         ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
         ignore line: [Compiler executable checksum: bbb51fd7c61b6cf0d289d5ccc7aaf585]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_494b5.dir/']
-        ignore line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/as -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include --64 -o CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o /tmp/cchUDrcT.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_f1888.dir/']
+        ignore line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/as -v -I /u/sw/toolchains/gcc-glibc/11.2.0/base/include --64 -o CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o /tmp/ccQke1Ij.s]
         ignore line: [GNU assembler version 2.37 (x86_64-mk-linux) using BFD version (mk-2022.0) 2.37]
         ignore line: [COMPILER_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/]
         ignore line: [LIBRARY_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib:/u/sw/toolchains/gcc-glibc/11.2.0/base/lib]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.']
-        ignore line: [Linking C executable cmTC_494b5]
-        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_494b5.dir/link.txt --verbose=1]
-        ignore line: [/u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicc  -v CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o -o cmTC_494b5 ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o' '-c' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-mtune=generic' '-march=x86-64' '-dumpdir' 'CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.']
+        ignore line: [Linking C executable cmTC_f1888]
+        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_f1888.dir/link.txt --verbose=1]
+        ignore line: [/u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicc  -v CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o -o cmTC_f1888 ]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/bin/gcc]
         ignore line: [COLLECT_LTO_WRAPPER=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper]
@@ -463,13 +463,13 @@ events:
         ignore line: [gcc version 11.2.0 (mk-2022.0) ]
         ignore line: [COMPILER_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/bin/]
         ignore line: [LIBRARY_PATH=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../:/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib:/u/sw/toolchains/gcc-glibc/11.2.0/base/lib]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_494b5' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_494b5.']
-        link line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2 -plugin /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so -plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccz53QfL.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --eh-frame-hdr -m elf_x86_64 -dynamic-linker /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2 -o cmTC_494b5 /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0 -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../.. -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib --enable-new-dtags -lmpi -lgcc --push-state --as-needed -lgcc_s --pop-state -lpthread -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtend.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crtn.o]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_f1888' '-I' '/u/sw/toolchains/gcc-glibc/11.2.0/base/include' '-pthread' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib' '-mtune=generic' '-march=x86-64' '-dumpdir' 'cmTC_f1888.']
+        link line: [ /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2 -plugin /u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so -plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper -plugin-opt=-fresolution=/tmp/ccvcUwNL.res -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s -plugin-opt=-pass-through=-lpthread -plugin-opt=-pass-through=-lc -plugin-opt=-pass-through=-lgcc -plugin-opt=-pass-through=-lgcc_s --eh-frame-hdr -m elf_x86_64 -dynamic-linker /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2 -o cmTC_f1888 /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0 -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib/../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../x86_64-mk-linux/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../.. -L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib -L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib -rpath /u/sw/toolchains/gcc-glibc/11.2.0/base/lib --enable-new-dtags -lmpi -lgcc --push-state --as-needed -lgcc_s --pop-state -lpthread -lc -lgcc --push-state --as-needed -lgcc_s --pop-state /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtend.o /u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crtn.o]
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/collect2] ==> ignore
           arg [-plugin] ==> ignore
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/liblto_plugin.so] ==> ignore
           arg [-plugin-opt=/u/sw/toolchains/gcc-glibc/11.2.0/prefix/libexec/gcc/x86_64-mk-linux/11.2.0/lto-wrapper] ==> ignore
-          arg [-plugin-opt=-fresolution=/tmp/ccz53QfL.res] ==> ignore
+          arg [-plugin-opt=-fresolution=/tmp/ccvcUwNL.res] ==> ignore
           arg [-plugin-opt=-pass-through=-lgcc] ==> ignore
           arg [-plugin-opt=-pass-through=-lgcc_s] ==> ignore
           arg [-plugin-opt=-pass-through=-lpthread] ==> ignore
@@ -482,7 +482,7 @@ events:
           arg [-dynamic-linker] ==> ignore
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/ld-linux-x86-64.so.2] ==> ignore
           arg [-o] ==> ignore
-          arg [cmTC_494b5] ==> ignore
+          arg [cmTC_f1888] ==> ignore
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o] ==> obj [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crt1.o]
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o] ==> obj [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../../../lib/crti.o]
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o] ==> obj [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/crtbegin.o]
@@ -495,7 +495,7 @@ events:
           arg [-L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../..] ==> dir [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib/gcc/x86_64-mk-linux/11.2.0/../../..]
           arg [-L/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib] ==> dir [/u/sw/toolchains/gcc-glibc/11.2.0/prefix/lib]
           arg [-L/u/sw/toolchains/gcc-glibc/11.2.0/base/lib] ==> dir [/u/sw/toolchains/gcc-glibc/11.2.0/base/lib]
-          arg [CMakeFiles/cmTC_494b5.dir/CMakeCCompilerABI.c.o] ==> ignore
+          arg [CMakeFiles/cmTC_f1888.dir/CMakeCCompilerABI.c.o] ==> ignore
           arg [-rpath] ==> ignore
           arg [/u/sw/toolchains/gcc-glibc/11.2.0/base/lib] ==> ignore
           arg [-rpath] ==> ignore
@@ -543,8 +543,8 @@ events:
       - "CMakeLists.txt:4 (include)"
     description: "The MPI test test_mpi for CXX in mode MPICXX"
     directories:
-      source: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-4dP65d"
-      binary: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-4dP65d"
+      source: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-x65kbd"
+      binary: "/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-x65kbd"
     cmakeVariables:
       CMAKE_CXX_FLAGS: ""
       CMAKE_CXX_FLAGS_DEBUG: "-g"
@@ -553,17 +553,17 @@ events:
       variable: "MPI_RESULT_CXX_test_mpi_MPICXX"
       cached: true
       stdout: |
-        Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-4dP65d'
+        Change Dir: '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-x65kbd'
         
-        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_8e9c4/fast
-        /usr/bin/gmake  -f CMakeFiles/cmTC_8e9c4.dir/build.make CMakeFiles/cmTC_8e9c4.dir/build
-        gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-4dP65d'
-        Building CXX object CMakeFiles/cmTC_8e9c4.dir/test_mpi.cpp.o
-        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx   -std=gnu++17 -o CMakeFiles/cmTC_8e9c4.dir/test_mpi.cpp.o -c /data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-4dP65d/test_mpi.cpp
-        Linking CXX executable cmTC_8e9c4
-        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_8e9c4.dir/link.txt --verbose=1
-        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx CMakeFiles/cmTC_8e9c4.dir/test_mpi.cpp.o -o cmTC_8e9c4 
-        gmake[1]: Leaving directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-4dP65d'
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_2a623/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_2a623.dir/build.make CMakeFiles/cmTC_2a623.dir/build
+        gmake[1]: Entering directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-x65kbd'
+        Building CXX object CMakeFiles/cmTC_2a623.dir/test_mpi.cpp.o
+        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx   -std=gnu++17 -o CMakeFiles/cmTC_2a623.dir/test_mpi.cpp.o -c /data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-x65kbd/test_mpi.cpp
+        Linking CXX executable cmTC_2a623
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_2a623.dir/link.txt --verbose=1
+        /u/sw/toolchains/gcc-glibc/11.2.0/base/bin/mpicxx CMakeFiles/cmTC_2a623.dir/test_mpi.cpp.o -o cmTC_2a623 
+        gmake[1]: Leaving directory '/data/pde/Wave-function-nmpde-projects/build/CMakeFiles/CMakeScratch/TryCompile-x65kbd'
         
       exitCode: 0
 ...
