@@ -66,7 +66,6 @@ using namespace dealii;
 // ============================================================================
 // Parse simple command-line arguments
 // ============================================================================
-
 struct ProgramOptions
 {
   std::string mode = "bench";       // bench | convergence | dispersion | both
@@ -109,7 +108,6 @@ parse_args(int argc, char **argv)
 // ============================================================================
 // Benchmark mode: run all selected solvers on the same mesh
 // ============================================================================
-
 template <int dim>
 void run_benchmark(const ProgramOptions &opts)
 {
@@ -134,10 +132,9 @@ void run_benchmark(const ProgramOptions &opts)
   Triangulation<dim> tria;
 #endif
 
-  // Domain: [-15, 15]^dim — large enough for the Gaussian wave packet.
+  // Domain: [-15, 15]^dim -- large enough for the Gaussian wave packet.
   GridGenerator::hyper_cube(tria, -15.0, 15.0);
   tria.refine_global(opts.refine);
-
   pcout << "   Global active cells : " << tria.n_global_active_cells() << "\n\n";
 
   // --- Initial conditions (shared by all solvers) ---
@@ -179,7 +176,6 @@ void run_benchmark(const ProgramOptions &opts)
     solver->set_initial_conditions(u0, v0);
 
     const double wtime = solver->run(opts.final_time, opts.write_output);
-
     const unsigned int n_steps =
         static_cast<unsigned int>(opts.final_time / solver->time_step_size());
 
@@ -218,12 +214,10 @@ void run_benchmark(const ProgramOptions &opts)
 // ============================================================================
 // Convergence mode: theta-scheme manufactured-solution test
 // ============================================================================
-
 template <int dim>
 void run_convergence(const ProgramOptions &opts)
 {
   static_assert(dim == 2, "Convergence study only implemented for dim=2.");
-
   ConditionalOStream pcout(std::cout,
                            Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
@@ -239,7 +233,6 @@ void run_convergence(const ProgramOptions &opts)
 // ============================================================================
 // main()
 // ============================================================================
-
 int main(int argc, char **argv)
 {
   Utilities::MPI::MPI_InitFinalize mpi_initialization(
@@ -259,7 +252,7 @@ int main(int argc, char **argv)
       {
         // Use a safe default of T=18 for the dispersion study unless the user
         // explicitly overrode --time (benchmark default of 45 is too long:
-        // the wave packet would exit the domain at T≈23).
+        // the wave packet would exit the domain at T ~ 23).
         const double T_disp = (opts.final_time != 45.0) ? opts.final_time : 18.0;
         run_dispersion<2>(/*k=*/2.0 * M_PI,
                           /*sigma=*/1.0,

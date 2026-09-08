@@ -4,7 +4,6 @@
 #include <deal.II/base/function.h>
 #include <deal.II/grid/tria.h>
 #include <deal.II/numerics/vector_tools.h>
-
 #include <fstream>
 #include <iomanip>
 #include <string>
@@ -15,7 +14,6 @@ using namespace dealii;
 // ============================================================================
 // EnergyData
 // ============================================================================
-
 /**
  * @brief Energy snapshot for the damped wave equation u_tt - Delta u + gamma*u_t = f.
  *
@@ -45,7 +43,7 @@ struct EnergyData
   double energy_decay = 0.0;     // E_tot(t) - E_tot(0)
 
   // -----------------------------------------------------------------------
-  // Staggered half-step energy — exactly conserved by the leapfrog integrator.
+  // Staggered half-step energy -- exactly conserved by the leapfrog integrator.
   //
   //   E^{n+1/2}_stag  =  0.5 * ||(u^{n+1} - u^n)/dt||^2_M           (kinetic)
   //                   +  0.5 *  a_h(u^n, u^{n+1})                    (potential)
@@ -85,7 +83,6 @@ write_energy_history_csv(const std::vector<EnergyData> &history,
   out << "time,kinetic_energy,potential_energy,total_energy,"
          "dissipation_rate,energy_decay,"
          "stag_kinetic_energy,stag_potential_energy,stag_total_energy,stag_energy_decay\n";
-
   for (const auto &e : history)
     out << e.time << ',' << e.kinetic_energy << ',' << e.potential_energy
         << ',' << e.total_energy << ',' << e.dissipation_rate << ','
@@ -97,15 +94,11 @@ write_energy_history_csv(const std::vector<EnergyData> &history,
 // ============================================================================
 // DispersionData
 // ============================================================================
-
 /**
  * @brief Result record produced by the numerical dispersion analysis.
- *
  * One DispersionData entry is created per (solver, polynomial-degree) pair.
  * The phase shift is found by minimising
- *
  *   ||u_num(T) - u_exact(T - s)||_L2   over s in R
- *
  * via ternary search.  The optimal s is the time delay of the numerical
  * solution: positive means the numerical wave is slower (lagging) and
  * negative means it is faster (leading).
@@ -118,10 +111,10 @@ struct DispersionData
   double wavenumber = 0.0;      ///< Carrier wavenumber k  (rad / length)
   double final_time = 0.0;      ///< Simulation end time T
   double l2_error = 0.0;        ///< ||u_num - u_exact||_{L2}  at T (raw point-by-point error)
-  double l2_aligned = 0.0;      ///< ||u_num - u_exact(T - Δt)||_{L2} (shape/amplitude error with phase lag removed)
-  double phase_shift = 0.0;     ///< Δt: optimal time shift (time units)
-  double phase_error_rad = 0.0; ///< Δφ = k * c * Δt  (radians)
-  double phase_lag_rel = 0.0;   ///< Δt / T  (dimensionless relative lag)
+  double l2_aligned = 0.0;      ///< ||u_num - u_exact(T - dt)||_{L2} (shape/amplitude error with phase lag removed)
+  double phase_shift = 0.0;     ///< dt: optimal time shift (time units)
+  double phase_error_rad = 0.0; ///< dphi = k * c * dt  (radians)
+  double phase_lag_rel = 0.0;   ///< dt / T  (dimensionless relative lag)
   double peak_x_exact = 0.0;    ///< Analytical peak x-coordinate
   double peak_x_num = 0.0;      ///< Numerical peak x-coordinate
   double peak_amp = 0.0;        ///< Numerical peak amplitude
@@ -129,12 +122,10 @@ struct DispersionData
 
 /**
  * @brief 1D peak locator along the x-coordinate around an expected center point.
- *
  * Uses a three-stage strategy:
  *   1. Uniform coarse scan across [center[0] - x_span, center[0] + x_span]
  *   2. Fine sub-grid refinement around the detected highest crest
  *   3. 3-point parabolic interpolation for sub-grid precision
- *
  * @tparam EvalFunc  Callable with signature: double(const Point<dim> &p)
  */
 template <int dim, typename EvalFunc>
@@ -150,71 +141,71 @@ locate_peak_1d(const EvalFunc &eval,
 
   // Stage 1: Uniform grid scan
   for (unsigned int i = 0; i < n_pts; ++i)
+  {
+    const double x = center[0] - x_span + i * dx;
+    Point<dim> p = center;
+    p[0] = x;
+    const double val = eval(p);
+    if (val > max_val)
     {
-      const double x = center[0] - x_span + i * dx;
-      Point<dim> p = center;
-      p[0] = x;
-      const double val = eval(p);
-      if (val > max_val)
-        {
-          max_val = val;
-          best_x  = x;
-        }
+      max_val = val;
+      best_x = x;
     }
+  }
 
   // Stage 2: Fine sub-grid refinement around the detected crest
   const double fine_dx = dx / 20.0;
   for (int step = -20; step <= 20; ++step)
+  {
+    const double x = best_x + step * fine_dx;
+    Point<dim> p = center;
+    p[0] = x;
+    const double val = eval(p);
+    if (val > max_val)
     {
-      const double x = best_x + step * fine_dx;
-      Point<dim> p = center;
-      p[0] = x;
-      const double val = eval(p);
-      if (val > max_val)
-        {
-          max_val = val;
-          best_x  = x;
-        }
+      max_val = val;
+      best_x = x;
     }
+  }
 
   // Stage 3: Parabolic 3-point sub-grid interpolation
   const double h_fit = fine_dx * 0.5;
-  Point<dim> p_left = center;   p_left[0] = best_x - h_fit;
-  Point<dim> p_right = center;  p_right[0] = best_x + h_fit;
-
+  Point<dim> p_left = center;
+  p_left[0] = best_x - h_fit;
+  Point<dim> p_right = center;
+  p_right[0] = best_x + h_fit;
   const double u_l = eval(p_left);
   const double u_r = eval(p_right);
   const double u_m = max_val;
-
   const double denom = (u_l - 2.0 * u_m + u_r);
   if (std::abs(denom) > 1e-12 && denom < 0.0)
+  {
+    const double delta = -0.5 * h_fit * (u_r - u_l) / denom;
+    if (std::abs(delta) < h_fit)
     {
-      const double delta = -0.5 * h_fit * (u_r - u_l) / denom;
-      if (std::abs(delta) < h_fit)
-        {
-          best_x += delta;
-          max_val = u_m - 0.125 * (u_r - u_l) * (u_r - u_l) / denom;
-        }
+      best_x += delta;
+      max_val = u_m - 0.125 * (u_r - u_l) * (u_r - u_l) / denom;
     }
+  }
 
   Point<dim> peak_pt = center;
   peak_pt[0] = best_x;
   return {peak_pt, max_val};
 }
 
+// ============================================================================
+// Abstract Base Class
+// ============================================================================
 /**
  * @brief Abstract base class for all wave equation solvers.
- *
  * All three strategies (Theta-scheme, Matrix-Free CG, Matrix-Free DG)
  * implement this interface, enabling polymorphic use in the benchmark driver.
- *
  * Lifecycle:
  *   1. Construct the solver.
  *   2. Call setup(tria) with an externally owned, already-refined triangulation.
  *   3. Call set_initial_conditions(u0, v0).
- *   4. Call run(T) to advance to final time T — returns compute wall time.
+ *   4. Call run(T) to advance to final time T -> returns compute wall time.
  *   5. Optionally call compute_error() against an exact solution.
- *
  * The triangulation must outlive the solver.
  */
 template <int dim>
@@ -306,7 +297,10 @@ public:
 
   /// Optional: override time step size before run().
   virtual void
-  set_time_step(double dt) { (void)dt; }
+  set_time_step(double dt)
+  {
+    (void)dt;
+  }
 
   /// Total number of degrees of freedom.
   virtual unsigned int
