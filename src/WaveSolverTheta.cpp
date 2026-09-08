@@ -202,10 +202,16 @@ template <int dim>
 double
 WaveSolverTheta<dim>::run(double T, bool write_output)
 {
-  // Choose time step proportional to mesh size (CFL-like).
-  const double h = GridTools::minimal_cell_diameter(*tria_ptr_);
-  time_step_      = h / 2.0;
-  time_           = time_step_;
+  // Choose time step: use user-specified time_step_ if set, else CFL-like h/2.
+  if (!user_time_step_ || time_step_ <= 0.0)
+    {
+      const double h = GridTools::minimal_cell_diameter(*tria_ptr_);
+      time_step_ = h / 2.0;
+    }
+  const unsigned int n_steps =
+    std::max(1u, static_cast<unsigned int>(std::round((T - time_) / time_step_)));
+  time_step_       = (T - time_) / n_steps;
+  time_            = time_step_;
   timestep_number_ = 1;
 
   // Work vectors (owned only — no ghosts needed for solve).
@@ -237,7 +243,17 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
   e0.time       = 0.0;
   energy_history_.push_back(e0);
 
-  for (; time_ <= T; time_ += time_step_, ++timestep_number_)
+  // Assemble constant system matrices for u and v once before the time loop.
+  // Both are constant across all time steps (time_step_, theta_, gamma_ are constant).
+  // Homogeneous Dirichlet boundary conditions are already symmetrically condensed
+  // via constraints_ in mass_matrix_ and laplace_matrix_, preserving SPD symmetry.
+  matrix_u_.copy_from(mass_matrix_);
+  matrix_u_.add(theta_ * theta_ * time_step_ * time_step_ / a, laplace_matrix_);
+
+  matrix_v_.copy_from(mass_matrix_);
+  matrix_v_ *= a; // (1 + theta*dt*gamma) * M
+
+  for (unsigned int step = 1; step <= n_steps; ++step, ++timestep_number_, time_ += time_step_)
     {
       timer.restart();
 
@@ -266,17 +282,7 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
       forcing_terms.add((1.0 - theta_) * time_step_, tmp);
       system_rhs_.add(theta_ * time_step_ / a, forcing_terms);
 
-      // Apply Dirichlet BC for u.
-      {
-        Functions::ZeroFunction<dim> zero_bc;
-        std::map<types::global_dof_index, double> bv;
-        VectorTools::interpolate_boundary_values(dof_handler_, 0, zero_bc, bv);
-        matrix_u_.copy_from(mass_matrix_);
-        matrix_u_.add(theta_ * theta_ * time_step_ * time_step_ / a,
-                     laplace_matrix_);
-        MatrixTools::apply_boundary_values(bv, matrix_u_, solution_u_, system_rhs_,
-                                           /*eliminate_columns=*/false);
-      }
+      constraints_.set_zero(system_rhs_);
       solve_u();
 
       // --- Build RHS for v ---
@@ -291,16 +297,7 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
 
       system_rhs_ += forcing_terms;
 
-      // Apply Dirichlet BC for v.
-      {
-        Functions::ZeroFunction<dim> zero_bc;
-        std::map<types::global_dof_index, double> bv;
-        VectorTools::interpolate_boundary_values(dof_handler_, 0, zero_bc, bv);
-        matrix_v_.copy_from(mass_matrix_);
-        matrix_v_ *= a; // (1 + theta*dt*gamma) * M
-        MatrixTools::apply_boundary_values(bv, matrix_v_, solution_v_, system_rhs_,
-                                           /*eliminate_columns=*/false);
-      }
+      constraints_.set_zero(system_rhs_);
       solve_v();
 
       wtime += timer.wall_time();
@@ -318,6 +315,7 @@ WaveSolverTheta<dim>::run(double T, bool write_output)
         output_results(timestep_number_);
     }
 
+  time_ = T;
   return wtime;
 }
 
@@ -342,6 +340,35 @@ WaveSolverTheta<dim>::compute_error(VectorTools::NormType norm_type,
                                     QGauss<dim>(fe_.degree + 2),
                                     norm_type);
   return VectorTools::compute_global_error(*tria_ptr_, error_per_cell, norm_type);
+}
+
+// ============================================================================
+// find_peak()
+// ============================================================================
+
+template <int dim>
+std::pair<Point<dim>, double>
+WaveSolverTheta<dim>::find_peak(const Point<dim> &center,
+                                double x_span,
+                                unsigned int n_pts) const
+{
+  TrilinosWrappers::MPI::Vector ghosted(locally_owned_dofs_,
+                                        locally_relevant_dofs_,
+                                        MPI_COMM_WORLD);
+  ghosted = solution_u_;
+  MappingQ1<dim> mapping;
+
+  auto eval = [&](const Point<dim> &p) -> double {
+    double val = -1e30;
+    try {
+      val = VectorTools::point_value(mapping, dof_handler_, ghosted, p);
+    } catch (...) {
+      val = -1e30;
+    }
+    return Utilities::MPI::max(val, MPI_COMM_WORLD);
+  };
+
+  return locate_peak_1d<dim>(eval, center, x_span, n_pts);
 }
 
 // ============================================================================

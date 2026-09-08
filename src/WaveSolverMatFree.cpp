@@ -173,6 +173,12 @@ WaveSolverMatFree<dim>::setup(const Triangulation<dim> &tria)
     lumped_mass_.compress(VectorOperation::add);
   }
 
+  // Initialize CFL-based time_step_ so that set_initial_conditions()
+  // uses the proper dt for the leapfrog startup u^{-1} = u0 - dt * v0.
+  const double local_min = tria_ptr_->last()->diameter() / std::sqrt(double(dim));
+  const double global_min = -Utilities::MPI::max(-local_min, MPI_COMM_WORLD);
+  time_step_ = cfl_number_ * global_min;
+
   pcout_ << "   [MatFree-CG] DoFs: " << dof_handler_.n_dofs() << std::endl;
 }
 
@@ -237,18 +243,24 @@ WaveSolverMatFree<dim>::run(double T, bool write_output)
   const double local_min = tria_ptr_->last()->diameter() / std::sqrt(double(dim));
   const double global_min =
     -Utilities::MPI::max(-local_min, MPI_COMM_WORLD);
-  time_step_ = cfl_number_ * global_min;
-  // Round to integer number of steps.
-  time_step_ = (T - time_) / static_cast<int>((T - time_) / time_step_);
+  const double dt_old = time_step_;
+  if (time_step_ <= 0.0)
+    time_step_ = cfl_number_ * global_min;
+
+  // Round to integer number of steps to land exactly at T.
+  const unsigned int n_steps =
+    std::max(1u, static_cast<unsigned int>(std::round((T - time_) / time_step_)));
+  time_step_ = (T - time_) / n_steps;
 
   pcout_ << "   [MatFree-CG] dt = " << time_step_
          << ", finest cell = " << global_min << std::endl;
 
-  // Adjust old_solution for the chosen dt (leapfrog startup correction).
-  // old_solution_ was set to u0 - dt_initial*v0 in set_initial_conditions.
-  // Re-interpolate properly.
-  // (For simplicity, we leave it as set — the small dt change is negligible
-  //  for benchmarking purposes.)
+  // Adjust old_solution_ for the adjusted dt (leapfrog startup correction).
+  // old_solution_ was set to u0 - dt_old * v0 in set_initial_conditions.
+  if (std::abs(time_step_ - dt_old) > 1e-14 && dt_old > 0.0)
+    {
+      old_solution_.sadd(time_step_ / dt_old, 1.0 - time_step_ / dt_old, solution_);
+    }
 
   std::vector<LinearAlgebra::distributed::Vector<double> *> prev_solutions(
     {&old_solution_, &old_old_solution_});
@@ -262,8 +274,9 @@ WaveSolverMatFree<dim>::run(double T, bool write_output)
   if (write_output)
     output_results(0);
 
-  for (time_ += time_step_; time_ <= T; time_ += time_step_, ++timestep_number)
+  for (unsigned int step = 1; step <= n_steps; ++step, ++timestep_number)
     {
+      time_ = step * time_step_;
       timer.restart();
       old_old_solution_.swap(old_solution_);
       old_solution_.swap(solution_);
@@ -279,6 +292,8 @@ WaveSolverMatFree<dim>::run(double T, bool write_output)
       if (write_output && timestep_number % output_timestep_skip_ == 0)
         output_results(timestep_number / output_timestep_skip_);
     }
+
+  time_ = T;
 
   if (write_output)
     output_results(timestep_number / output_timestep_skip_ + 1);
@@ -310,6 +325,33 @@ WaveSolverMatFree<dim>::compute_error(VectorTools::NormType norm_type,
 
   solution_.zero_out_ghost_values();
   return error;
+}
+
+// ============================================================================
+// find_peak()
+// ============================================================================
+
+template <int dim>
+std::pair<Point<dim>, double>
+WaveSolverMatFree<dim>::find_peak(const Point<dim> &center,
+                                  double x_span,
+                                  unsigned int n_pts) const
+{
+  solution_.update_ghost_values();
+
+  auto eval = [&](const Point<dim> &p) -> double {
+    double val = -1e30;
+    try {
+      val = VectorTools::point_value(mapping_, dof_handler_, solution_, p);
+    } catch (...) {
+      val = -1e30;
+    }
+    return Utilities::MPI::max(val, MPI_COMM_WORLD);
+  };
+
+  auto res = locate_peak_1d<dim>(eval, center, x_span, n_pts);
+  solution_.zero_out_ghost_values();
+  return res;
 }
 
 // ============================================================================

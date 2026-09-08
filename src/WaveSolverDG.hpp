@@ -116,6 +116,11 @@ public:
   compute_error(VectorTools::NormType norm_type,
                 const Function<dim>  &exact_solution) const override;
 
+  std::pair<Point<dim>, double>
+  find_peak(const Point<dim> &center,
+            double x_span = 1.5,
+            unsigned int n_pts = 300) const override;
+
   /**
    * Energy at the most recently completed step.
    *

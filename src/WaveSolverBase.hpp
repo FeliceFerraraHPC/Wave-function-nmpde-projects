@@ -6,6 +6,7 @@
 #include <deal.II/numerics/vector_tools.h>
 
 #include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
@@ -36,12 +37,12 @@ using namespace dealii;
  */
 struct EnergyData
 {
-  double time             = 0.0; // simulation time of this snapshot
-  double kinetic_energy   = 0.0; // E_kin  (natural: v^n = (u^{n+1}-u^{n-1})/(2dt))
+  double time = 0.0;             // simulation time of this snapshot
+  double kinetic_energy = 0.0;   // E_kin  (natural: v^n = (u^{n+1}-u^{n-1})/(2dt))
   double potential_energy = 0.0; // E_pot  (natural: 0.5*||grad u^n||^2)
-  double total_energy     = 0.0; // E_tot = E_kin + E_pot  (natural, O(dt^2) drift)
+  double total_energy = 0.0;     // E_tot = E_kin + E_pot  (natural, O(dt^2) drift)
   double dissipation_rate = 0.0; // D = gamma * ||u_t||^2 = 2*gamma*E_kin
-  double energy_decay     = 0.0; // E_tot(t) - E_tot(0)
+  double energy_decay = 0.0;     // E_tot(t) - E_tot(0)
 
   // -----------------------------------------------------------------------
   // Staggered half-step energy — exactly conserved by the leapfrog integrator.
@@ -58,10 +59,10 @@ struct EnergyData
   // is defined analogously using the backward difference (u^n - u^{n-1})/dt
   // so that all three solvers expose a comparable observable.
   // -----------------------------------------------------------------------
-  double stag_kinetic_energy   = 0.0; // 0.5 * ||(u^{n+1}-u^n)/dt||^2_M
+  double stag_kinetic_energy = 0.0;   // 0.5 * ||(u^{n+1}-u^n)/dt||^2_M
   double stag_potential_energy = 0.0; // 0.5 * a_h(u^n, u^{n+1})
-  double stag_total_energy     = 0.0; // stag_kin + stag_pot
-  double stag_energy_decay     = 0.0; // stag_total(t) - stag_total(0)
+  double stag_total_energy = 0.0;     // stag_kin + stag_pot
+  double stag_energy_decay = 0.0;     // stag_total(t) - stag_total(0)
 };
 
 /**
@@ -71,9 +72,16 @@ struct EnergyData
  */
 inline void
 write_energy_history_csv(const std::vector<EnergyData> &history,
-                         const std::string             &filename)
+                         const std::string &filename)
 {
   std::ofstream out(filename);
+  // Full double precision (17 significant digits round-trips a double
+  // exactly). This matters specifically for stag_total_energy/stag_energy_decay:
+  // that quantity is conserved down to ~1e-9-1e-10 (floating-point roundoff),
+  // and the default 6-digit stream precision was silently rounding every row
+  // to the same literal string, hiding the very thing this diagnostic exists
+  // to show.
+  out << std::setprecision(17);
   out << "time,kinetic_energy,potential_energy,total_energy,"
          "dissipation_rate,energy_decay,"
          "stag_kinetic_energy,stag_potential_energy,stag_total_energy,stag_energy_decay\n";
@@ -83,7 +91,115 @@ write_energy_history_csv(const std::vector<EnergyData> &history,
         << ',' << e.total_energy << ',' << e.dissipation_rate << ','
         << e.energy_decay << ','
         << e.stag_kinetic_energy << ',' << e.stag_potential_energy << ','
-        << e.stag_total_energy  << ',' << e.stag_energy_decay << '\n';
+        << e.stag_total_energy << ',' << e.stag_energy_decay << '\n';
+}
+
+// ============================================================================
+// DispersionData
+// ============================================================================
+
+/**
+ * @brief Result record produced by the numerical dispersion analysis.
+ *
+ * One DispersionData entry is created per (solver, polynomial-degree) pair.
+ * The phase shift is found by minimising
+ *
+ *   ||u_num(T) - u_exact(T - s)||_L2   over s in R
+ *
+ * via ternary search.  The optimal s is the time delay of the numerical
+ * solution: positive means the numerical wave is slower (lagging) and
+ * negative means it is faster (leading).
+ */
+struct DispersionData
+{
+  std::string solver_name;      ///< Human-readable solver label
+  unsigned int fe_degree = 0;   ///< Polynomial order p
+  unsigned int n_dofs = 0;      ///< Total degrees of freedom
+  double wavenumber = 0.0;      ///< Carrier wavenumber k  (rad / length)
+  double final_time = 0.0;      ///< Simulation end time T
+  double l2_error = 0.0;        ///< ||u_num - u_exact||_{L2}  at T (raw point-by-point error)
+  double l2_aligned = 0.0;      ///< ||u_num - u_exact(T - Δt)||_{L2} (shape/amplitude error with phase lag removed)
+  double phase_shift = 0.0;     ///< Δt: optimal time shift (time units)
+  double phase_error_rad = 0.0; ///< Δφ = k * c * Δt  (radians)
+  double phase_lag_rel = 0.0;   ///< Δt / T  (dimensionless relative lag)
+  double peak_x_exact = 0.0;    ///< Analytical peak x-coordinate
+  double peak_x_num = 0.0;      ///< Numerical peak x-coordinate
+  double peak_amp = 0.0;        ///< Numerical peak amplitude
+};
+
+/**
+ * @brief 1D peak locator along the x-coordinate around an expected center point.
+ *
+ * Uses a three-stage strategy:
+ *   1. Uniform coarse scan across [center[0] - x_span, center[0] + x_span]
+ *   2. Fine sub-grid refinement around the detected highest crest
+ *   3. 3-point parabolic interpolation for sub-grid precision
+ *
+ * @tparam EvalFunc  Callable with signature: double(const Point<dim> &p)
+ */
+template <int dim, typename EvalFunc>
+std::pair<Point<dim>, double>
+locate_peak_1d(const EvalFunc &eval,
+               const Point<dim> &center,
+               const double x_span = 1.5,
+               const unsigned int n_pts = 300)
+{
+  const double dx = (2.0 * x_span) / (n_pts - 1);
+  double best_x = center[0];
+  double max_val = -1e30;
+
+  // Stage 1: Uniform grid scan
+  for (unsigned int i = 0; i < n_pts; ++i)
+    {
+      const double x = center[0] - x_span + i * dx;
+      Point<dim> p = center;
+      p[0] = x;
+      const double val = eval(p);
+      if (val > max_val)
+        {
+          max_val = val;
+          best_x  = x;
+        }
+    }
+
+  // Stage 2: Fine sub-grid refinement around the detected crest
+  const double fine_dx = dx / 20.0;
+  for (int step = -20; step <= 20; ++step)
+    {
+      const double x = best_x + step * fine_dx;
+      Point<dim> p = center;
+      p[0] = x;
+      const double val = eval(p);
+      if (val > max_val)
+        {
+          max_val = val;
+          best_x  = x;
+        }
+    }
+
+  // Stage 3: Parabolic 3-point sub-grid interpolation
+  const double h_fit = fine_dx * 0.5;
+  Point<dim> p_left = center;   p_left[0] = best_x - h_fit;
+  Point<dim> p_right = center;  p_right[0] = best_x + h_fit;
+
+  const double u_l = eval(p_left);
+  const double u_r = eval(p_right);
+  const double u_m = max_val;
+
+  const double denom = (u_l - 2.0 * u_m + u_r);
+  if (std::abs(denom) > 1e-12 && denom < 0.0)
+    {
+      const double delta = -0.5 * h_fit * (u_r - u_l) / denom;
+      if (std::abs(delta) < h_fit)
+        {
+          best_x += delta;
+          max_val = u_m - 0.125 * (u_r - u_l) * (u_r - u_l) / denom;
+        }
+    }
+
+  Point<dim> peak_pt = center;
+  peak_pt[0] = best_x;
+  return {peak_pt, max_val};
 }
 
 /**
@@ -106,6 +222,20 @@ class WaveSolverBase
 {
 public:
   virtual ~WaveSolverBase() = default;
+
+  /**
+   * Find the peak (maximum crest) of the numerical displacement field u
+   * along a 1D line in x around an expected center.
+   *
+   * @param center  Expected center Point<dim> (e.g. (x_exact_peak, 0.0)).
+   * @param x_span  Half-width of search interval in x (default 1.5).
+   * @param n_pts   Number of sample points for initial scan (default 300).
+   * @return        Pair of {peak_location_Point, peak_value}.
+   */
+  virtual std::pair<Point<dim>, double>
+  find_peak(const Point<dim> &center,
+            double x_span = 1.5,
+            unsigned int n_pts = 300) const = 0;
 
   /**
    * Initialize the solver on an externally provided triangulation.
@@ -146,8 +276,8 @@ public:
    * @return               The requested error norm.
    */
   virtual double
-  compute_error(VectorTools::NormType  norm_type,
-                const Function<dim>   &exact_solution) const = 0;
+  compute_error(VectorTools::NormType norm_type,
+                const Function<dim> &exact_solution) const = 0;
 
   /**
    * Compute the kinetic/potential/total energy of the solver's *current*
@@ -173,6 +303,10 @@ public:
   /// Size of the time step used by the solver.
   virtual double
   time_step_size() const = 0;
+
+  /// Optional: override time step size before run().
+  virtual void
+  set_time_step(double dt) { (void)dt; }
 
   /// Total number of degrees of freedom.
   virtual unsigned int

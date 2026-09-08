@@ -15,6 +15,7 @@
 
 #include <deal.II/fe/fe_q.h>
 #include <deal.II/fe/fe_values.h>
+#include <deal.II/fe/mapping_q1.h>
 
 #include <deal.II/grid/tria.h>
 
@@ -80,6 +81,11 @@ public:
   compute_error(VectorTools::NormType norm_type,
                 const Function<dim>  &exact_solution) const override;
 
+  std::pair<Point<dim>, double>
+  find_peak(const Point<dim> &center,
+            double x_span = 1.5,
+            unsigned int n_pts = 300) const override;
+
   /**
    * Energy of the current state.
    *
@@ -113,6 +119,7 @@ public:
 
   double       current_time()   const override { return time_; }
   double       time_step_size() const override { return time_step_; }
+  void         set_time_step(double dt) override { time_step_ = dt; user_time_step_ = true; }
   unsigned int n_dofs()         const override;
   std::string  name()           const override { return "Theta-scheme (Trilinos MPI)"; }
 
@@ -164,6 +171,7 @@ private:
   TrilinosWrappers::MPI::Vector system_rhs_;
 
   double       time_step_ = 1.0 / 64.0;
+  bool         user_time_step_ = false;
   double       time_      = 0.0;
   unsigned int timestep_number_ = 0;
 

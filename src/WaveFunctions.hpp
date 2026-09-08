@@ -151,4 +151,149 @@ public:
   }
 };
 
+// ---------------------------------------------------------------------------
+// Gaussian-modulated sinusoidal wave packet — initial displacement.
+//
+//   dim=1:  u0(x) = exp( -(x-x0)^2/(2σ^2) ) * cos( k*(x-x0) )
+//   dim=2:  u0(x,y) = [above] * sin( π*(y-y_min)/L_y )
+//
+// The sin factor in y ensures u0 = 0 on the top/bottom walls y = y_min and
+// y = y_min + L_y, making the IC compatible with homogeneous Dirichlet BCs
+// on all four sides of the square domain.  With L_y = 30, y_min = -15 the
+// factor modifies the phase speed by only ≈ 1.4e-4 (negligible).
+//
+// The exact solution of the 2D wave equation (c=1) with this IC is:
+//   u_exact(x,y,t) = exp(-(x-x0-t)^2/(2σ^2)) * cos(k*(x-x0-t))
+//                    * sin(π*(y-y_min)/L_y)
+// to high accuracy (see GaussianSinusoidExact).
+// ---------------------------------------------------------------------------
+template <int dim>
+class GaussianSinusoidIC : public Function<dim>
+{
+public:
+  explicit GaussianSinusoidIC(const double k     = 2.0 * M_PI,
+                               const double x0    = -8.0,
+                               const double sigma = 1.0,
+                               const double y_min = -15.0,
+                               const double L_y   = 30.0)
+    : Function<dim>(1, 0.0), k_(k), x0_(x0), sigma_(sigma),
+      y_min_(y_min), L_y_(L_y)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    const double xi  = p[0] - x0_;
+    double val = std::exp(-xi * xi / (2.0 * sigma_ * sigma_)) * std::cos(k_ * xi);
+    // In dim==2 multiply by a y-mode that is 0 on top/bottom walls and 1 at
+    // the domain midpoint, making the IC exactly compatible with Dirichlet BCs.
+    if constexpr (dim == 2)
+      val *= std::sin(M_PI * (p[1] - y_min_) / L_y_);
+    return val;
+  }
+
+private:
+  const double k_;
+  const double x0_;
+  const double sigma_;
+  const double y_min_;
+  const double L_y_;
+};
+
+// ---------------------------------------------------------------------------
+// Gaussian-modulated sinusoidal wave packet — initial velocity.
+//
+//   v0 = u_t(x,0) = -c * ∂u0/∂x
+//      = c * exp(-(x-x0)^2/(2σ^2))
+//        * [ (x-x0)/σ^2 * cos(k*(x-x0)) + k*sin(k*(x-x0)) ]
+//        * sin(π*(y-y_min)/L_y)   (dim==2 only)
+//
+// Setting v0 = -c * ∂u0/∂x drives a purely rightward-traveling wave at t=0.
+// ---------------------------------------------------------------------------
+template <int dim>
+class GaussianSinusoidV0 : public Function<dim>
+{
+public:
+  explicit GaussianSinusoidV0(const double k     = 2.0 * M_PI,
+                               const double x0    = -8.0,
+                               const double sigma = 1.0,
+                               const double c     = 1.0,
+                               const double y_min = -15.0,
+                               const double L_y   = 30.0)
+    : Function<dim>(1, 0.0), k_(k), x0_(x0), sigma_(sigma), c_(c),
+      y_min_(y_min), L_y_(L_y)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    const double xi  = p[0] - x0_;
+    const double env = std::exp(-xi * xi / (2.0 * sigma_ * sigma_));
+    double val = c_ * env *
+                 ((xi / (sigma_ * sigma_)) * std::cos(k_ * xi) +
+                  k_ * std::sin(k_ * xi));
+    if constexpr (dim == 2)
+      val *= std::sin(M_PI * (p[1] - y_min_) / L_y_);
+    return val;
+  }
+
+private:
+  const double k_;
+  const double x0_;
+  const double sigma_;
+  const double c_;
+  const double y_min_;
+  const double L_y_;
+};
+
+// ---------------------------------------------------------------------------
+// Gaussian-modulated sinusoidal wave packet — exact solution.
+//
+//   dim=1:  u_exact(x,t)   = exp(-(x-x0-c*t)^2/(2σ^2)) * cos(k*(x-x0-c*t))
+//   dim=2:  u_exact(x,y,t) = [above] * sin(π*(y-y_min)/L_y)
+//
+// The 2D exact solution corresponds to the modified wave equation
+//   u_tt - u_xx + (π/L_y)^2 * u = 0  (Klein-Gordon in x with y-mode)
+// whose phase speed is c_ph = sqrt(1 + (π/(k*L_y))^2) ≈ 1 + 1.4e-4 for
+// k=2π, L_y=30 — negligible, so c=1 is used throughout.
+//
+// Call set_time(t) before passing to compute_error().
+// ---------------------------------------------------------------------------
+template <int dim>
+class GaussianSinusoidExact : public Function<dim>
+{
+public:
+  explicit GaussianSinusoidExact(const double k     = 2.0 * M_PI,
+                                  const double x0    = -8.0,
+                                  const double sigma = 1.0,
+                                  const double c     = 1.0,
+                                  const double y_min = -15.0,
+                                  const double L_y   = 30.0)
+    : Function<dim>(1, 0.0), k_(k), x0_(x0), sigma_(sigma), c_(c),
+      y_min_(y_min), L_y_(L_y)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    const double t = this->get_time();
+    double c_eff = c_;
+    if constexpr (dim == 2)
+      c_eff = std::sqrt(c_ * c_ + (M_PI * M_PI) / (k_ * k_ * L_y_ * L_y_));
+    const double xi = p[0] - x0_ - c_eff * t;
+    double val = std::exp(-xi * xi / (2.0 * sigma_ * sigma_)) * std::cos(k_ * xi);
+    if constexpr (dim == 2)
+      val *= std::sin(M_PI * (p[1] - y_min_) / L_y_);
+    return val;
+  }
+
+private:
+  const double k_;
+  const double x0_;
+  const double sigma_;
+  const double c_;
+  const double y_min_;
+  const double L_y_;
+};
+
 #endif // WAVE_FUNCTIONS_HPP

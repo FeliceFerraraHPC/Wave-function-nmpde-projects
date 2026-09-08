@@ -6,14 +6,16 @@
  *   ./WaveBenchmark [options]
  *
  * Options:
- *   --mode     [bench|convergence|both]   Default: bench
+ *   --mode     [bench|convergence|dispersion|both]  Default: bench
  *   --dim      [2|3]                      Default: 2
  *   --refine   N                          Global refinement level. Default: 6
- *   --time     T                          Final simulation time. Default: 1.0
+ *   --time     T                          Final simulation time. Default: 45.0
  *   --solver   [all|theta|cg|dg]          Solvers to run. Default: all
  *   --gamma    G                          Damping coeff in u_tt-Delta u+gamma*u_t=0.
  *                                         Default: 0 (undamped, energy-conserving)
  *   --output                              Enable VTU output (disabled by default)
+ *   --target-dofs N                       DOF target for dispersion p-study.
+ *                                         Default: 16000
  *
  * In --mode bench:
  *   Runs each selected solver on the SAME globally-refined triangulation and
@@ -22,6 +24,14 @@
  * In --mode convergence:
  *   Runs the theta-scheme manufactured-solution convergence study on a
  *   sequence of meshes and prints convergence rates.
+ *
+ * In --mode dispersion:
+ *   Runs the numerical dispersion analysis:
+ *   (1) p-degree parametric study (WaveSolverTheta, p=1,2,4,6, matched DOFs).
+ *   (2) CG (WaveSolverMatFree) vs DG (WaveSolverDG) comparison at p=4.
+ *   Uses a Gaussian-modulated sinusoidal wave packet as initial condition and
+ *   measures the phase error via L2 minimization over a time shift.
+ *   Writes dispersion_results.csv to the run directory.
  *
  * In --mode both:
  *   Runs the benchmark first, then the convergence study.
@@ -49,6 +59,7 @@
 #include "WaveSolverDG.hpp"
 #include "WaveSolverMatFree.hpp"
 #include "WaveSolverTheta.hpp"
+#include "dispersion_analysis.hpp"
 
 using namespace dealii;
 
@@ -58,13 +69,14 @@ using namespace dealii;
 
 struct ProgramOptions
 {
-  std::string mode = "bench"; // bench | convergence | both
-  int dim = 2;                // spatial dimension (2 or 3)
-  unsigned int refine = 6;    // global refinement levels
-  double final_time = 200.0;  // final simulation time
-  std::string solver = "all"; // all | theta | cg | dg
-  double gamma = 0.0;         // damping coeff in u_tt - Delta u + gamma*u_t = 0
-  bool write_output = true;   // write VTU files?
+  std::string mode = "bench";       // bench | convergence | dispersion | both
+  int dim = 2;                      // spatial dimension (2 or 3)
+  unsigned int refine = 6;          // global refinement levels
+  double final_time = 45.0;         // final simulation time
+  std::string solver = "all";       // all | theta | cg | dg
+  double gamma = 0.0;               // damping coeff in u_tt - Delta u + gamma*u_t = 0
+  bool write_output = true;         // write VTU files?
+  unsigned int target_dofs = 16000; // matched DOF target for dispersion p-study
 };
 
 ProgramOptions
@@ -88,6 +100,8 @@ parse_args(int argc, char **argv)
       opts.gamma = std::stod(argv[++i]);
     else if (arg == "--output")
       opts.write_output = true;
+    else if (arg == "--target-dofs" && i + 1 < argc)
+      opts.target_dofs = static_cast<unsigned int>(std::stoul(argv[++i]));
   }
   return opts;
 }
@@ -241,12 +255,26 @@ int main(int argc, char **argv)
         run_benchmark<2>(opts);
       if (opts.mode == "convergence" || opts.mode == "both")
         run_convergence<2>(opts);
+      if (opts.mode == "dispersion")
+      {
+        // Use a safe default of T=18 for the dispersion study unless the user
+        // explicitly overrode --time (benchmark default of 45 is too long:
+        // the wave packet would exit the domain at T≈23).
+        const double T_disp = (opts.final_time != 45.0) ? opts.final_time : 18.0;
+        run_dispersion<2>(/*k=*/2.0 * M_PI,
+                          /*sigma=*/1.0,
+                          /*x0=*/-8.0,
+                          /*T_final=*/T_disp,
+                          /*target_dofs=*/opts.target_dofs,
+                          /*refine_cmp=*/opts.refine);
+      }
     }
     else if (opts.dim == 3)
     {
       if (opts.mode == "bench" || opts.mode == "both")
         run_benchmark<3>(opts);
       // Convergence study in 3D not implemented (manufactured solution is 2D only)
+      // Dispersion study in 3D not implemented (plane-wave setup is 2D only)
     }
     else
     {
