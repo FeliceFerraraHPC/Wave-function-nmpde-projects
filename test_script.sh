@@ -27,9 +27,8 @@ mkdir -p build
 cd build
 cmake ..
 make -j"$(nproc)"
-cd ..
 
-EXEC="$(pwd)/build/WaveBenchmark"
+EXEC="./WaveBenchmark"
 
 SOLVERS=("theta" "cg" "dg")
 DIMS=(2 3)
@@ -51,23 +50,20 @@ run_benchmarks() {
         fi
 
         for s in "${SOLVERS[@]}"; do
-            OUT_DIR="results/benchmark/dim${d}/${s}"
-            mkdir -p "${OUT_DIR}"
             echo "Running benchmark for dim=${d}, solver=${s}, refine=${REFINE}, gamma=${GAMMA}..."
-
-            cd "${OUT_DIR}"
             "${EXEC}" --mode bench \
                       --dim "${d}" \
                       --solver "${s}" \
                       --refine "${REFINE}" \
                       --time "${FINAL_TIME}" \
-                      --gamma "${GAMMA}" > bench_output.txt
+                      --gamma "${GAMMA}"
 
-            # Move produced energy diagnostic CSVs into the output folder
-            if ls energy_*.csv 1> /dev/null 2>&1; then
-                mv energy_*.csv ./
-            fi
-            cd - > /dev/null
+            # Tag generated energy CSV with dimension to keep both 2D and 3D logs
+            for f in energy_*.csv; do
+                if [ -f "$f" ] && [[ "$f" != *_dim* ]]; then
+                    mv "$f" "${f%.csv}_dim${d}.csv"
+                fi
+            done
         done
     done
 }
@@ -78,20 +74,11 @@ run_benchmarks() {
 run_convergence() {
     echo ">>> Step 2: Running Convergence Studies (dim=2)"
     for s in "${SOLVERS[@]}"; do
-        OUT_DIR="results/convergence/${s}"
-        mkdir -p "${OUT_DIR}"
         echo "Running convergence study for solver=${s}..."
-
-        cd "${OUT_DIR}"
         "${EXEC}" --mode convergence \
                   --solver "${s}" \
                   --dim 2 \
-                  --time "${FINAL_TIME}" > convergence_output.txt
-
-        if [ -f "convergence_${s}.csv" ]; then
-            echo "Convergence table saved to ${OUT_DIR}/convergence_${s}.csv"
-        fi
-        cd - > /dev/null
+                  --time "${FINAL_TIME}"
     done
 }
 
@@ -100,19 +87,10 @@ run_convergence() {
 # ============================================================
 run_dispersion() {
     echo ">>> Step 3: Running Numerical Dispersion Analysis (dim=2)"
-    OUT_DIR="results/dispersion"
-    mkdir -p "${OUT_DIR}"
     echo "Running dispersion analysis..."
-
-    cd "${OUT_DIR}"
     "${EXEC}" --mode dispersion \
               --dim 2 \
-              --time "${FINAL_TIME}" > dispersion_output.txt
-
-    if [ -f "dispersion_results.csv" ]; then
-        echo "Dispersion results saved to ${OUT_DIR}/dispersion_results.csv"
-    fi
-    cd - > /dev/null
+              --time "${FINAL_TIME}"
 }
 
 # ============================================================
@@ -128,20 +106,14 @@ run_output() {
         fi
 
         for s in "${SOLVERS[@]}"; do
-            OUT_DIR="results/output/dim${d}/${s}"
-            rm -rf "${OUT_DIR}"
-            mkdir -p "${OUT_DIR}"
             echo "Generating visualization output for dim=${d}, solver=${s}, refine=${REFINE}..."
-
-            cd "${OUT_DIR}"
             "${EXEC}" --mode bench \
                       --dim "${d}" \
                       --solver "${s}" \
                       --refine "${REFINE}" \
                       --time "${FINAL_TIME}" \
                       --gamma "${GAMMA}" \
-                      --output > run_log.txt
-            cd - > /dev/null
+                      --output
         done
     done
 }
@@ -163,10 +135,13 @@ case "${STEP}" in
     *)
         echo "Unknown step: ${STEP}"
         echo "Usage: ./test_script.sh [--step bench|convergence|dispersion|output|all] [--time T] [--gamma G]"
+        cd ..
         exit 1
         ;;
 esac
 
+cd ..
+
 echo "=========================================="
-echo " Testing completed. Results saved in results/"
+echo " Testing completed. All output files are in build/"
 echo "=========================================="

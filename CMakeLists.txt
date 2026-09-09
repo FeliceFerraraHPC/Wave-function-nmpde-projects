@@ -30,5 +30,6 @@ add_custom_target(clean-output
 		${CMAKE_BINARY_DIR}/theta_solution*.pvtu
 		${CMAKE_BINARY_DIR}/energy_*.csv
 		${CMAKE_BINARY_DIR}/convergence_*.csv
+		${CMAKE_BINARY_DIR}/dispersion_results.csv
 	COMMENT "Cleaning VTU/PVTU/CSV output files"
 )
