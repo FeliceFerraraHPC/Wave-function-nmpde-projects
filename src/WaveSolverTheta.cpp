@@ -196,7 +196,7 @@ void WaveSolverTheta<dim>::output_results(unsigned int step_number) const
   flags.compression_level = DataOutBase::CompressionLevel::best_speed;
   data_out.set_flags(flags);
   data_out.write_vtu_with_pvtu_record(
-      "./", "theta_solution", step_number, MPI_COMM_WORLD, 3);
+      get_output_dir(), "theta_solution", step_number, MPI_COMM_WORLD, 3);
 }
 
 // ============================================================================
@@ -474,7 +474,7 @@ void WaveSolverTheta<dim>::run_convergence_study(
   if constexpr (dim == 2)
   {
     ConvergenceTable table;
-    std::ofstream csv("convergence_theta.csv");
+    std::ofstream csv(get_output_path("convergence_theta.csv"));
     csv << "h,eL2(u),eH1(u),eL2(v),eH1(v)\n";
 
     for (const unsigned int N_el : refinement_levels)

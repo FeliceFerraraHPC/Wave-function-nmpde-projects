@@ -62,7 +62,8 @@ inline void
 write_dispersion_csv(const std::vector<DispersionData> &results,
                      const std::string &filename)
 {
-  std::ofstream out(filename);
+  const std::string out_path = get_output_path(filename);
+  std::ofstream out(out_path);
   out << std::setprecision(14);
   out << "solver,fe_degree,n_dofs,wavenumber,final_time,"
          "l2_raw,l2_aligned,phase_shift_dt,phase_error_rad,phase_lag_rel,"
@@ -360,8 +361,9 @@ void run_dispersion(const double k = 2.0 * M_PI,
   if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
   {
     print_dispersion_table(results, std::cout);
-    write_dispersion_csv(results, "dispersion_results.csv");
-    std::cout << "  Results written to  dispersion_results.csv\n\n";
+    const std::string csv_path = get_output_path("dispersion_results.csv");
+    write_dispersion_csv(results, csv_path);
+    std::cout << "  Results written to  " << csv_path << "\n\n";
   }
 }
 

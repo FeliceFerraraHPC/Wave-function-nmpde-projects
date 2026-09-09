@@ -216,7 +216,7 @@ void WaveSolverMatFree<dim>::output_results(unsigned int timestep_number)
   data_out.add_data_vector(solution_, "solution");
   data_out.build_patches(mapping_);
   data_out.write_vtu_with_pvtu_record(
-      "./", "cg_solution", timestep_number, MPI_COMM_WORLD, 3);
+      get_output_dir(), "cg_solution", timestep_number, MPI_COMM_WORLD, 3);
 
   solution_.zero_out_ghost_values();
 }

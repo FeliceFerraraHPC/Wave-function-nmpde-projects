@@ -402,7 +402,8 @@ void run_convergence_for_solver(
     std::cout << std::string(88, '=') << "\n\n";
 
     const std::string csv_name = "convergence_" + solver_tag + ".csv";
-    std::ofstream csv(csv_name);
+    const std::string csv_path = get_output_path(csv_name);
+    std::ofstream csv(csv_path);
     csv << std::setprecision(14);
     csv << "refinement,h,n_dofs,l2_error,l2_eoc,h1_error,h1_eoc\n";
     for (const auto &r : results)
@@ -415,7 +416,7 @@ void run_convergence_for_solver(
           << r.h1_error << ','
           << r.h1_eoc << '\n';
     }
-    std::cout << "  Convergence results saved to " << csv_name << "\n\n";
+    std::cout << "  Convergence results saved to " << csv_path << "\n\n";
   }
 }
 

@@ -4,12 +4,31 @@
 #include <deal.II/base/function.h>
 #include <deal.II/grid/tria.h>
 #include <deal.II/numerics/vector_tools.h>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <string>
 #include <vector>
 
 using namespace dealii;
+
+// ============================================================================
+// Output Path Helpers: automatically route generated files to build/ if running
+// from repository root, or into current directory if already in build/
+// ============================================================================
+inline std::string get_output_path(const std::string &filename)
+{
+  if (std::filesystem::is_directory("build"))
+    return "build/" + filename;
+  return filename;
+}
+
+inline std::string get_output_dir()
+{
+  if (std::filesystem::is_directory("build"))
+    return "build/";
+  return "./";
+}
 
 // ============================================================================
 // EnergyData
@@ -72,7 +91,8 @@ inline void
 write_energy_history_csv(const std::vector<EnergyData> &history,
                          const std::string &filename)
 {
-  std::ofstream out(filename);
+  const std::string out_path = get_output_path(filename);
+  std::ofstream out(out_path);
   // Full double precision (17 significant digits round-trips a double
   // exactly). This matters specifically for stag_total_energy/stag_energy_decay:
   // that quantity is conserved down to ~1e-9-1e-10 (floating-point roundoff),
