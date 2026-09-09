@@ -25,6 +25,13 @@
     - [10.5 Continuous Galerkin (CG) vs. Discontinuous Galerkin (DG) Dispersion](#105-continuous-galerkin-cg-vs-discontinuous-galerkin-dg-dispersion)
     - [10.6 Code References & Benchmark Execution](#106-code-references--benchmark-execution)
 11. [Summary & Architectural Comparison Table](#11-summary--architectural-comparison-table)
+12. [Convergence Analysis: Method of Manufactured Solutions (MMS) & Error Scaling](#12-convergence-analysis-method-of-manufactured-solutions-mms--error-scaling)
+    - [12.1 Analytical Standing Wave Solution & Dirichlet Boundary Alignment](#121-analytical-standing-wave-solution--dirichlet-boundary-alignment)
+    - [12.2 Discretization Error Decomposition: Spatial vs. Temporal Balance](#122-discretization-error-decomposition-spatial-vs-temporal-balance)
+    - [12.3 Scaling Laws: Strict Spatial Scaling (dt ∝ h^2.5) vs. CFL Scaling (dt ∝ h)](#123-scaling-laws-strict-spatial-scaling-dt--h25-vs-cfl-scaling-dt--h)
+    - [12.4 Startup Formulation: Fictitious Step u^{-1} = u_{exact}(-dt)](#124-startup-formulation-fictitious-step-u-1--u_exact-dt)
+    - [12.5 Fine-Grid Roundoff Saturation Barrier](#125-fine-grid-roundoff-saturation-barrier)
+    - [12.6 Verification Results Across the Suite (CG, DG, Theta)](#126-verification-results-across-the-suite-cg-dg-theta)
 
 ---
 
@@ -793,3 +800,145 @@ The three wave solvers in this benchmark suite embody complementary design point
   Machine precision roundoff (10^{-14})                   Subluminal vs Superluminal separation
 ```
 
+---
+
+## 12. Convergence Analysis: Method of Manufactured Solutions (MMS) & Error Scaling
+
+To verify the mathematical correctness and asymptotic convergence rates of the spatial and temporal discretizations, the solver suite implements the **Method of Manufactured Solutions (MMS)** via the `--mode convergence` driver.
+
+### 12.1 Analytical Standing Wave Solution & Dirichlet Boundary Alignment
+
+We construct a multi-dimensional standing wave on the hypercube domain $\Omega = (0, \pi)^d$ with wave speed $c = 1$:
+
+$$\boxed{ u_{\text{exact}}(\mathbf{x}, t) = \cos(\sqrt{d}\, t) \prod_{j=1}^d \sin(x_j) }$$
+
+**1. Boundary Conditions:**
+For any coordinate $x_k \in \{0, \pi\}$, $\sin(x_k) = 0$. Consequently:
+$$u_{\text{exact}}(\mathbf{x}, t) = 0 \quad \forall \mathbf{x} \in \partial\Omega, \; \forall t \ge 0,$$
+matching the homogeneous Dirichlet boundary conditions identically.
+
+**2. Initial Conditions:**
+At $t = 0$:
+$$u_0(\mathbf{x}) \equiv u_{\text{exact}}(\mathbf{x}, 0) = \prod_{j=1}^d \sin(x_j),$$
+$$v_0(\mathbf{x}) \equiv \partial_t u_{\text{exact}}(\mathbf{x}, 0) = -\sqrt{d} \sin(0) \prod_{j=1}^d \sin(x_j) \equiv 0.$$
+The system starts from a pure modal displacement at rest.
+
+**3. Governing PDE Satisfaction:**
+Differentiating twice in space:
+$$\frac{\partial^2 u}{\partial x_k^2} = -\cos(\sqrt{d}\, t) \sin(x_k) \prod_{j \ne k} \sin(x_j) = - u_{\text{exact}}(\mathbf{x}, t),$$
+$$\Delta u_{\text{exact}} = \sum_{k=1}^d \frac{\partial^2 u}{\partial x_k^2} = - d\, u_{\text{exact}}(\mathbf{x}, t).$$
+Differentiating twice in time:
+$$\frac{\partial^2 u_{\text{exact}}}{\partial t^2} = -(\sqrt{d})^2 \cos(\sqrt{d}\, t) \prod_{j=1}^d \sin(x_j) = - d\, u_{\text{exact}}(\mathbf{x}, t).$$
+Substituting into the unforced wave operator ($c = 1, \gamma = 0$):
+$$\partial_{tt} u_{\text{exact}} - \Delta u_{\text{exact}} = -d\, u_{\text{exact}} - (-d\, u_{\text{exact}}) \equiv 0.$$
+The manufactured solution is an **exact, unforced eigenmode** of the continuous wave equation ($f(\mathbf{x}, t) \equiv 0$).
+
+---
+
+### 12.2 Discretization Error Decomposition: Spatial vs. Temporal Balance
+
+For a conforming/non-conforming finite element discretization of polynomial degree $p$ combined with a second-order time integrator (Leapfrog or Crank–Nicolson), the global error at final time $T$ satisfies the a priori bound:
+
+$$\|u(T) - u_h^n\|_{L^2(\Omega)} \le C_{\text{space}} h^{p+1} + C_{\text{time}} \Delta t^2,$$
+$$|u(T) - u_h^n|_{H^1(\Omega)} \le C_{\text{space}}' h^p + C_{\text{time}}' \Delta t^2.$$
+
+For our degree $p = 4$ elements:
+- Spatial rate in $L^2$: $\mathcal{O}(h^5)$ ($\text{EOC} = 5.0$).
+- Spatial rate in $H^1$: $\mathcal{O}(h^4)$ ($\text{EOC} = 4.0$).
+- Temporal rate: $\mathcal{O}(\Delta t^2)$ ($\text{EOC} = 2.0$).
+
+---
+
+### 12.3 Scaling Laws: Strict Spatial Scaling ($\Delta t \propto h^{2.5}$) vs. CFL Scaling ($\Delta t \propto h$)
+
+Because the spatial error decays as $\mathcal{O}(h^5)$ while the temporal error decays only as $\mathcal{O}(\Delta t^2)$, measuring convergence requires distinguishing between two scaling regimes:
+
+#### Regime A: Standard CFL Scaling ($\Delta t = \text{CFL} \cdot h$)
+When $\Delta t$ is coupled linearly to $h$:
+$$\|u(T) - u_h^n\|_{L^2} \approx C_{\text{space}} h^5 + C_{\text{time}} (\text{CFL} \cdot h)^2 = C_{\text{space}} h^5 + \widetilde{C}_{\text{time}} h^2.$$
+On coarse meshes ($h \approx 0.8$), the high-order spatial error $h^5$ may still contribute. However, on refined meshes ($h \le 0.2$), $h^5 \ll h^2$, and the temporal error **completely dominates**. The observed convergence rate asymptotes to:
+$$\text{EOC}_{L^2} \to 2.00, \quad \text{EOC}_{H^1} \to 2.00.$$
+
+#### Regime B: Strict Spatial Scaling ($\Delta t \propto h^{2.5}$)
+To isolate the true spatial convergence order $\mathcal{O}(h^5)$, the temporal error must shrink at least as fast as the spatial error:
+$$\Delta t^2 \sim h^5 \implies \mathbf{\Delta t \propto h^{2.5}}.$$
+In the code (`src/main.cpp`):
+```cpp
+const double h_ref = numbers::PI / 4.0;       // Level 2 reference
+const double dt_ref = cfl * h_ref;
+dt = dt_ref * std::pow(h_cell / h_ref, 2.5);  // dt ∝ h^2.5
+```
+Under this scaling, halving the mesh size ($h \to h/2$) reduces $\Delta t$ by $2^{2.5} \approx 5.657$, which reduces $\Delta t^2$ by $32 = 2^5$. Both spatial and temporal errors decay by $32\times$, allowing the optimal rates to be observed:
+$$\mathbf{\text{EOC}_{L^2} \approx 5.00}, \quad \mathbf{\text{EOC}_{H^1} \approx 4.00 - 5.00}.$$
+
+---
+
+### 12.4 Startup Formulation: Fictitious Step $u^{-1} = u_{\text{exact}}(-\Delta t)$
+
+Explicit Leapfrog requires a fictitious past level $u^{-1}$ to start. Standard Taylor expansion:
+$$u^{-1} = u_0 - \Delta t\, v_0 + \frac{\Delta t^2}{2} a_0$$
+incurs a local truncation error of $\mathcal{O}(\Delta t^3)$. When testing high-order spatial convergence ($p=4$), even an $\mathcal{O}(\Delta t^3)$ startup error can pollute the $\mathcal{O}(h^5)$ spatial error on fine grids.
+
+To guarantee that startup error is zero, the solver interface accepts an optional exact past solution:
+```cpp
+StandingWaveExact<dim> u_prev(-dt);
+solver->set_initial_conditions(u0, v0, &u_prev);
+```
+Inside the solvers (`WaveSolverMatFree`, `WaveSolverDG`), `u_prev` directly initializes `old_solution_` via $L^2$ projection:
+```cpp
+if (u_prev != nullptr) {
+    VectorTools::project(dof_handler_, constraints_,
+                         QGaussLobatto<dim>(fe_degree_ + 1),
+                         *u_prev, old_solution_);
+}
+```
+
+---
+
+### 12.5 Fine-Grid Roundoff Saturation Barrier
+
+In explicit second-order Leapfrog time-stepping:
+$$u^{n+1} = 2u^n - u^{n-1} - \Delta t^2 \mathbf{M}^{-1} \mathbf{K} u^n,$$
+local roundoff errors $\epsilon_{\text{mach}} \approx 10^{-16}$ accumulate over $N = T/\Delta t$ steps. The global roundoff error scales as:
+$$E_{\text{roundoff}} \sim \frac{\epsilon_{\text{mach}}}{\Delta t^2}.$$
+
+Under strict spatial scaling ($\Delta t \propto h^{2.5}$):
+- **Level 2** ($h = \pi/4$): $\Delta t \approx 2 \times 10^{-2}$ ($50$ steps), error $\approx 7 \times 10^{-5} \gg E_{\text{roundoff}}$.
+- **Level 3** ($h = \pi/8$): $\Delta t \approx 3.5 \times 10^{-3}$ ($289$ steps), error $\approx 2 \times 10^{-6} \gg E_{\text{roundoff}}$.
+- **Level 4** ($h = \pi/16$): $\Delta t \approx 6 \times 10^{-4}$ ($1,600$ steps), error $\approx 7 \times 10^{-8} \gg E_{\text{roundoff}}$.
+- **Level 5** ($h = \pi/32$): $\Delta t \approx 10^{-4}$ ($9,000$ steps), theoretical error $\approx 2 \times 10^{-9}$, while $E_{\text{roundoff}} \approx 10^{-8}$.
+- **Level 6** ($h = \pi/64$): $\Delta t \approx 1.8 \times 10^{-5}$ ($55,000$ steps for CG, $>650,000$ for DG), $E_{\text{roundoff}} \approx 3 \times 10^{-7}$.
+
+At Level 5 and 6, the theoretical spatial error drops below the hardware floating-point roundoff floor, causing the apparent EOC to saturate. Therefore:
+- **Spatial scaling** defaults to refinements `{2, 3, 4}` where errors are cleanly above roundoff.
+- **CFL scaling** safely includes refinements `{2, 3, 4, 5}`, where step counts remain modest and $\text{EOC} = 2.00$ is achieved.
+
+---
+
+### 12.6 Verification Results Across the Suite (CG, DG, Theta)
+
+#### 1. Strict Spatial Scaling ($\Delta t \propto h^{2.5}$, $p = 4$, $T = 1.0$)
+| Solver | Refinement | $h$ | DOFs | $L^2$ Error | $L^2$ EOC | $H^1$ Error | $H^1$ EOC | Theoretical Spatial Rate |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Matrix-Free CG** | 2 | $0.7854$ | 289 | $7.170 \times 10^{-5}$ | — | $1.048 \times 10^{-4}$ | — | — |
+| | 3 | $0.3927$ | 1,089 | $2.197 \times 10^{-6}$ | **5.03** | $3.516 \times 10^{-6}$ | **4.90** | $\mathcal{O}(h^5) / \mathcal{O}(h^4)$ |
+| | 4 | $0.1963$ | 4,225 | $6.882 \times 10^{-8}$ | **5.00** | $1.411 \times 10^{-7}$ | **4.64** | $\mathcal{O}(h^5) / \mathcal{O}(h^4)$ |
+| **Matrix-Free DG (SIPG)** | 2 | $0.7854$ | 400 | $2.735 \times 10^{-6}$ | — | $4.774 \times 10^{-5}$ | — | — |
+| | 3 | $0.3927$ | 1,600 | $1.037 \times 10^{-7}$ | **4.72** | $4.891 \times 10^{-6}$ | **3.29** | $\mathcal{O}(h^5) / \mathcal{O}(h^4)$ |
+| | 4 | $0.1963$ | 6,400 | $3.921 \times 10^{-9}$ | **4.73** | $1.598 \times 10^{-7}$ | **4.94** | $\mathcal{O}(h^5) / \mathcal{O}(h^4)$ |
+| **Theta-Scheme (CN)** | 2 | $0.7854$ | 289 | $1.007 \times 10^{-2}$ | — | $1.424 \times 10^{-2}$ | — | — |
+| | 3 | $0.3927$ | 1,089 | $4.347 \times 10^{-4}$ | **4.53** | $6.147 \times 10^{-4}$ | **4.53** | $\mathcal{O}(h^5) / \mathcal{O}(h^4)$ |
+| | 4 | $0.1963$ | 4,225 | $1.376 \times 10^{-5}$ | **4.98** | $2.004 \times 10^{-5}$ | **4.94** | $\mathcal{O}(h^5) / \mathcal{O}(h^4)$ |
+
+#### 2. Standard CFL Scaling ($\Delta t \propto h$, $p = 4$, $T = 1.0$)
+| Solver | Refinement | $h$ | DOFs | $L^2$ Error | $L^2$ EOC | $H^1$ Error | $H^1$ EOC | Theoretical Temporal Rate |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Matrix-Free CG** | 3 | $0.3927$ | 1,089 | $1.775 \times 10^{-5}$ | **2.01** | $2.515 \times 10^{-5}$ | **2.06** | $\mathcal{O}(\Delta t^2)$ |
+| | 4 | $0.1963$ | 4,225 | $4.415 \times 10^{-6}$ | **2.01** | $6.245 \times 10^{-6}$ | **2.01** | $\mathcal{O}(\Delta t^2)$ |
+| | 5 | $0.0982$ | 16,641 | $1.101 \times 10^{-6}$ | **2.00** | $1.557 \times 10^{-6}$ | **2.00** | $\mathcal{O}(\Delta t^2)$ |
+| **Matrix-Free DG (SIPG)** | 3 | $0.3927$ | 1,600 | $2.920 \times 10^{-7}$ | **3.23** | $5.003 \times 10^{-6}$ | **3.25** | $\mathcal{O}(\Delta t^2)$ |
+| | 4 | $0.1963$ | 6,400 | $6.888 \times 10^{-8}$ | **2.08** | $1.415 \times 10^{-7}$ | **5.14** | $\mathcal{O}(\Delta t^2)$ |
+| | 5 | $0.0982$ | 25,600 | $1.700 \times 10^{-8}$ | **2.02** | $2.784 \times 10^{-8}$ | **2.35** | $\mathcal{O}(\Delta t^2)$ |
+| **Theta-Scheme (CN)** | 3 | $0.3927$ | 1,089 | $3.014 \times 10^{-3}$ | **1.74** | $4.263 \times 10^{-3}$ | **1.74** | $\mathcal{O}(\Delta t^2)$ |
+| | 4 | $0.1963$ | 4,225 | $8.287 \times 10^{-4}$ | **1.86** | $1.172 \times 10^{-3}$ | **1.86** | $\mathcal{O}(\Delta t^2)$ |
+| | 5 | $0.0982$ | 16,641 | $2.175 \times 10^{-4}$ | **1.93** | $3.076 \times 10^{-4}$ | **1.93** | $\mathcal{O}(\Delta t^2)$ |
