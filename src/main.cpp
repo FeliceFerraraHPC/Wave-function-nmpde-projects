@@ -288,6 +288,24 @@ void run_convergence_for_solver(
     solver_title = "Trilinos Theta-Scheme (Crank-Nicolson, p=4)";
 
   const bool is_neumann = (bc == "neumann");
+
+  if (non_homogeneous)
+  {
+    if (solver_tag == "theta")
+    {
+      pcout << "\n>>> Skipping Trilinos Theta-Scheme for non-homogeneous study.\n"
+            << "    (The implicit theta solver uses pre-condensed constant matrices;\n"
+            << "     time-dependent inhomogeneous boundary conditions are evaluated by CG and DG).\n\n";
+      return;
+    }
+    if (solver_tag == "cg" && is_neumann)
+    {
+      pcout << "\n>>> Skipping Matrix-Free CG for non-homogeneous Neumann study.\n"
+            << "    (Matrix-Free CG uses cell-only integration loops;\n"
+            << "     non-homogeneous Neumann boundary fluxes are evaluated by the DG solver).\n\n";
+      return;
+    }
+  }
   
   std::string bc_label;
   if (!non_homogeneous)
