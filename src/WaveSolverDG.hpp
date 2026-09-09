@@ -38,7 +38,9 @@ public:
   WaveOperationDG(const MatrixFree<dim, double> &data_in,
                   double time_step,
                   double cell_diameter = 1.0,
-                  double gamma = 0.0);
+                  double gamma = 0.0,
+                  typename WaveSolverBase<dim>::BoundaryType boundary_type =
+                      WaveSolverBase<dim>::BoundaryType::Dirichlet);
 
   void
   apply(LinearAlgebra::distributed::Vector<double> &dst,
@@ -71,6 +73,7 @@ private:
   const double gamma_;
   const VectorizedArray<double> delta_t_sqr_;
   const double h_inv_; ///< 1/h for SIPG penalty
+  const typename WaveSolverBase<dim>::BoundaryType boundary_type_;
 
   // Lumped inverse *effective* mass, see WaveOperationCG for details.
   LinearAlgebra::distributed::Vector<double> inv_effective_mass_matrix_;

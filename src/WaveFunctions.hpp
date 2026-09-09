@@ -177,6 +177,138 @@ public:
   }
 };
 
+// ---------------------------------------------------------------------------
+// Acoustic sound wave exact solution for Neumann boundary conditions:
+//   u_exact(x, t) = cos(omega * t) * prod_{d=0}^{dim-1} cos(x_d)
+//   with omega = sqrt(dim) and c = 1 on Omega = (0, pi)^dim x (0, T].
+//
+// Solves:  u_tt - Delta u = 0
+//   with grad(u) . n = 0 on dOmega (sound-hard walls, homogeneous Neumann),
+//   u(x, 0) = prod cos(x_d), u_t(x, 0) = 0, and f = 0.
+// ---------------------------------------------------------------------------
+template <int dim>
+class AcousticSoundWaveExact : public Function<dim>
+{
+public:
+  explicit AcousticSoundWaveExact(const double time = 0.)
+    : Function<dim>(1, time)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    const double t     = this->get_time();
+    const double omega = std::sqrt(static_cast<double>(dim));
+    double       val   = std::cos(omega * t);
+    for (unsigned int d = 0; d < dim; ++d)
+      val *= std::cos(p[d]);
+    return val;
+  }
+
+  virtual Tensor<1, dim>
+  gradient(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    const double   t           = this->get_time();
+    const double   omega       = std::sqrt(static_cast<double>(dim));
+    const double   time_factor = std::cos(omega * t);
+    Tensor<1, dim> grad;
+    for (unsigned int d = 0; d < dim; ++d)
+    {
+      double spatial_deriv = -std::sin(p[d]);
+      for (unsigned int j = 0; j < dim; ++j)
+        if (j != d)
+          spatial_deriv *= std::cos(p[j]);
+      grad[d] = spatial_deriv * time_factor;
+    }
+    return grad;
+  }
+};
+
+template <int dim>
+class AcousticSoundWaveIC : public Function<dim>
+{
+public:
+  explicit AcousticSoundWaveIC(const double time = 0.)
+    : Function<dim>(1, time)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    double val = 1.0;
+    for (unsigned int d = 0; d < dim; ++d)
+      val *= std::cos(p[d]);
+    return val;
+  }
+
+  virtual Tensor<1, dim>
+  gradient(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    Tensor<1, dim> grad;
+    for (unsigned int d = 0; d < dim; ++d)
+    {
+      double spatial_deriv = -std::sin(p[d]);
+      for (unsigned int j = 0; j < dim; ++j)
+        if (j != d)
+          spatial_deriv *= std::cos(p[j]);
+      grad[d] = spatial_deriv;
+    }
+    return grad;
+  }
+};
+
+template <int dim>
+class AcousticSoundWaveV0 : public Function<dim>
+{
+public:
+  explicit AcousticSoundWaveV0(const double time = 0.)
+    : Function<dim>(1, time)
+  {}
+
+  virtual double
+  value(const Point<dim> & /*p*/, const unsigned int /*component*/ = 0) const override
+  {
+    return 0.0;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Localized acoustic sound pulse (pressure blast) in a cavity/duct:
+//   u0(x) = amplitude * exp(-|x - center|^2 / (2 * width^2))
+// Ideal for observing sound wave reflections off rigid (Neumann) walls
+// and highlighting DG's sharp gradient resolution without Gibbs oscillations.
+// ---------------------------------------------------------------------------
+template <int dim>
+class AcousticPulseIC : public Function<dim>
+{
+public:
+  explicit AcousticPulseIC(const Point<dim> &center    = Point<dim>(),
+                           const double      width     = 1.0,
+                           const double      amplitude = 1.0)
+    : Function<dim>(1, 0.0)
+    , center_(center)
+    , width_(width)
+    , amplitude_(amplitude)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    double r2 = 0.0;
+    for (unsigned int d = 0; d < dim; ++d)
+    {
+      const double diff = p[d] - center_[d];
+      r2 += diff * diff;
+    }
+    return amplitude_ * std::exp(-r2 / (2.0 * width_ * width_));
+  }
+
+private:
+  const Point<dim> center_;
+  const double      width_;
+  const double      amplitude_;
+};
+
 // Aliases for convenience
 template <int dim>
 using ExactSolution = StandingWaveExact<dim>;

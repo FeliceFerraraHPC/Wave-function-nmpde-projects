@@ -9,8 +9,9 @@ WaveOperationDG<dim, fe_degree>::WaveOperationDG(
     const MatrixFree<dim, double> &data_in,
     const double time_step,
     const double cell_diameter,
-    const double gamma)
-    : data_(data_in), time_step_(time_step), gamma_(gamma), delta_t_sqr_(make_vectorized_array(time_step * time_step)), h_inv_(1.0 / cell_diameter)
+    const double gamma,
+    typename WaveSolverBase<dim>::BoundaryType boundary_type)
+    : data_(data_in), time_step_(time_step), gamma_(gamma), delta_t_sqr_(make_vectorized_array(time_step * time_step)), h_inv_(1.0 / cell_diameter), boundary_type_(boundary_type)
 {
   data_.initialize_dof_vector(inv_effective_mass_matrix_);
   FEEvaluation<dim, fe_degree> fe_eval(data_);
@@ -135,6 +136,9 @@ void WaveOperationDG<dim, fe_degree>::local_apply_boundary_face(
     const std::vector<LinearAlgebra::distributed::Vector<double> *> &src,
     const std::pair<unsigned int, unsigned int> &face_range) const
 {
+  if (boundary_type_ == WaveSolverBase<dim>::BoundaryType::Neumann)
+    return; // Homogeneous Neumann: boundary flux is identically zero!
+
   FEFaceEvaluation<dim, fe_degree> fe_eval(data, true);
 
   const double penalty_factor =
@@ -345,7 +349,7 @@ WaveSolverDG<dim>::run(double T, bool write_output)
 
   // h_inv for SIPG penalty = 1 / global_min_cell_diameter
   WaveOperationDG<dim, fe_degree> wave_op(
-      matrix_free_data_, time_step_, global_min, gamma_);
+      matrix_free_data_, time_step_, global_min, gamma_, this->boundary_type_);
 
   unsigned int timestep_number = 1;
   Timer timer;
@@ -549,13 +553,9 @@ WaveSolverDG<dim>::compute_energy() const
     {
       if (cell->at_boundary(f))
       {
-        // ----------------------------------------------------------
-        // Boundary face: Dirichlet u = 0 via SIPG.
-        // Ghost value u_ext = 0, so jump = u_int, avg_grad = grad_int.
-        // Contribution to 0.5 * a_h(u^n, u^{n+1}):
-        //   int_f [ -grad u^n * n * u^{n+1}  - grad u^{n+1} * n * u^n
-        //           + 2*sigma * u^n * u^{n+1} ] ds
-        // ----------------------------------------------------------
+        if (this->boundary_type_ == WaveSolverBase<dim>::BoundaryType::Neumann)
+          continue;
+
         fv_curr.reinit(cell, f);
         fv_next.reinit(cell, f);
 

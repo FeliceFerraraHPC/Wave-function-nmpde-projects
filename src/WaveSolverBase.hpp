@@ -331,6 +331,27 @@ public:
   /// Human-readable name of the solver strategy.
   virtual std::string
   name() const = 0;
+
+  enum class BoundaryType
+  {
+    Dirichlet,
+    Neumann
+  };
+
+  virtual void
+  set_boundary_type(BoundaryType bt)
+  {
+    boundary_type_ = bt;
+  }
+
+  virtual BoundaryType
+  get_boundary_type() const
+  {
+    return boundary_type_;
+  }
+
+protected:
+  BoundaryType boundary_type_ = BoundaryType::Dirichlet;
 };
 
 #endif // WAVE_SOLVER_BASE_HPP

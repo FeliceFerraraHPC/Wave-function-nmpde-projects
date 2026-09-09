@@ -7,16 +7,22 @@ set -e
 # Usage: ./test_script.sh [--step bench|convergence|dispersion|output|all]
 #                         [--time T]    (default: 1.0)
 #                         [--gamma G]   (default: 0.0)
+#                         [--bc BC]     (default: dirichlet)
+#                         [--wave WAVE] (default: default)
 # ============================================================
 STEP="all"
 FINAL_TIME="1.0"
 GAMMA="0.0"
+BC="dirichlet"
+WAVE="default"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --step)  STEP="$2";       shift 2 ;;
         --time)  FINAL_TIME="$2"; shift 2 ;;
         --gamma) GAMMA="$2";      shift 2 ;;
+        --bc)    BC="$2";         shift 2 ;;
+        --wave)  WAVE="$2";       shift 2 ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
 done
@@ -50,13 +56,15 @@ run_benchmarks() {
         fi
 
         for s in "${SOLVERS[@]}"; do
-            echo "Running benchmark for dim=${d}, solver=${s}, refine=${REFINE}, gamma=${GAMMA}..."
+            echo "Running benchmark for dim=${d}, solver=${s}, refine=${REFINE}, gamma=${GAMMA}, bc=${BC}, wave=${WAVE}..."
             "${EXEC}" --mode bench \
                       --dim "${d}" \
                       --solver "${s}" \
                       --refine "${REFINE}" \
                       --time "${FINAL_TIME}" \
-                      --gamma "${GAMMA}"
+                      --gamma "${GAMMA}" \
+                      --bc "${BC}" \
+                      --wave "${WAVE}"
 
             # Tag generated energy CSV with dimension to keep both 2D and 3D logs
             for f in energy_*.csv; do
@@ -72,13 +80,14 @@ run_benchmarks() {
 # Step 2: Convergence Studies (Manufactured Solution, dim=2)
 # ============================================================
 run_convergence() {
-    echo ">>> Step 2: Running Convergence Studies (dim=2)"
+    echo ">>> Step 2: Running Convergence Studies (dim=2, bc=${BC})"
     for s in "${SOLVERS[@]}"; do
         echo "Running convergence study for solver=${s}..."
         "${EXEC}" --mode convergence \
                   --solver "${s}" \
                   --dim 2 \
-                  --time "${FINAL_TIME}"
+                  --time "${FINAL_TIME}" \
+                  --bc "${BC}"
     done
 }
 
@@ -106,13 +115,15 @@ run_output() {
         fi
 
         for s in "${SOLVERS[@]}"; do
-            echo "Generating visualization output for dim=${d}, solver=${s}, refine=${REFINE}..."
+            echo "Generating visualization output for dim=${d}, solver=${s}, refine=${REFINE}, bc=${BC}, wave=${WAVE}..."
             "${EXEC}" --mode bench \
                       --dim "${d}" \
                       --solver "${s}" \
                       --refine "${REFINE}" \
                       --time "${FINAL_TIME}" \
                       --gamma "${GAMMA}" \
+                      --bc "${BC}" \
+                      --wave "${WAVE}" \
                       --output
         done
     done

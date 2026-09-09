@@ -117,11 +117,14 @@ void WaveSolverMatFree<dim>::setup(const Triangulation<dim> &tria)
   constraints_.clear();
   constraints_.reinit(locally_relevant_dofs_);
   DoFTools::make_hanging_node_constraints(dof_handler_, constraints_);
-  VectorTools::interpolate_boundary_values(mapping_,
-                                           dof_handler_,
-                                           0,
-                                           Functions::ZeroFunction<dim>(),
-                                           constraints_);
+  if (this->boundary_type_ == WaveSolverBase<dim>::BoundaryType::Dirichlet)
+  {
+    VectorTools::interpolate_boundary_values(mapping_,
+                                             dof_handler_,
+                                             0,
+                                             Functions::ZeroFunction<dim>(),
+                                             constraints_);
+  }
   constraints_.close();
 
   typename MatrixFree<dim, double>::AdditionalData additional_data;

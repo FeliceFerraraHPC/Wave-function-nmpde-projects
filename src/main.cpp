@@ -13,6 +13,10 @@
  *   --solver   [all|theta|cg|dg]          Solvers to run. Default: all
  *   --gamma    G                          Damping coeff in u_tt-Delta u+gamma*u_t=0.
  *                                         Default: 0 (undamped, energy-conserving)
+ *   --bc       [dirichlet|neumann]        Boundary condition. Default: dirichlet
+ *   --wave     [default|acoustic|pulse]   Initial wave profile. Default: default
+ *   --cfl-scaling                         Use standard CFL (dt = CFL * h) in convergence mode
+ *   --spatial-scaling                     Use strict spatial scaling (dt ∝ h^2.5) in convergence mode
  *   --output                              Enable VTU output (disabled by default)
  *   --target-dofs N                       DOF target for dispersion p-study.
  *                                         Default: 16000
@@ -78,6 +82,8 @@ struct ProgramOptions
   bool write_output = true;         // write VTU files?
   unsigned int target_dofs = 16000; // matched DOF target for dispersion p-study
   bool use_spatial_scaling = true;  // dt ∝ h^2.5 for p=4 in convergence mode
+  std::string bc = "dirichlet";     // dirichlet | neumann
+  std::string wave = "default";     // default | acoustic | pulse
 };
 
 ProgramOptions
@@ -110,6 +116,10 @@ parse_args(int argc, char **argv)
       opts.use_spatial_scaling = false;
     else if (arg == "--spatial-scaling")
       opts.use_spatial_scaling = true;
+    else if (arg == "--bc" && i + 1 < argc)
+      opts.bc = argv[++i];
+    else if (arg == "--wave" && i + 1 < argc)
+      opts.wave = argv[++i];
   }
   return opts;
 }
@@ -129,7 +139,10 @@ void run_benchmark(const ProgramOptions &opts)
         << "  Refinement levels : " << opts.refine << "\n"
         << "  Final time        : " << opts.final_time << "\n"
         << "  Damping (gamma)   : " << opts.gamma << "\n"
-        << "  MPI ranks         : "
+        << "  Boundary conds    : " << opts.bc << "\n";
+  if (opts.wave != "default")
+    pcout << "  Wave profile      : " << opts.wave << "\n";
+  pcout << "  MPI ranks         : "
         << Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD) << "\n"
         << "  Threads / rank    : " << MultithreadInfo::n_threads() << "\n"
         << std::endl;
@@ -147,8 +160,15 @@ void run_benchmark(const ProgramOptions &opts)
   pcout << "   Global active cells : " << tria.n_global_active_cells() << "\n\n";
 
   // --- Initial conditions (shared by all solvers) ---
-  const InitialDisplacement<dim> u0; // Gaussian wave packet
-  const InitialVelocity<dim> v0;     // zero velocity
+  const InitialDisplacement<dim> u0_gauss;
+  const InitialVelocity<dim>     v0_zero;
+  const AcousticSoundWaveIC<dim> u0_acoustic;
+  const AcousticSoundWaveV0<dim> v0_acoustic;
+  const AcousticPulseIC<dim>     u0_pulse;
+
+  const auto bc_type = (opts.bc == "neumann")
+                           ? WaveSolverBase<dim>::BoundaryType::Neumann
+                           : WaveSolverBase<dim>::BoundaryType::Dirichlet;
 
   // --- Collect solvers to run ---
   using SolverPtr = std::unique_ptr<WaveSolverBase<dim>>;
@@ -181,8 +201,15 @@ void run_benchmark(const ProgramOptions &opts)
   // --- Run each solver ---
   for (auto &solver : solvers)
   {
+    solver->set_boundary_type(bc_type);
     solver->setup(tria);
-    solver->set_initial_conditions(u0, v0);
+
+    if (opts.wave == "acoustic")
+      solver->set_initial_conditions(u0_acoustic, v0_acoustic);
+    else if (opts.wave == "pulse")
+      solver->set_initial_conditions(u0_pulse, v0_zero);
+    else
+      solver->set_initial_conditions(u0_gauss, v0_zero);
 
     const double wtime = solver->run(opts.final_time, opts.write_output);
     const unsigned int n_steps =
@@ -241,7 +268,8 @@ void run_convergence_for_solver(
     const std::vector<unsigned int> &levels,
     double final_time,
     bool use_spatial_scaling,
-    double gamma)
+    double gamma,
+    const std::string &bc = "dirichlet")
 {
   const bool is_root = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
   ConditionalOStream pcout(std::cout, is_root);
@@ -254,10 +282,16 @@ void run_convergence_for_solver(
   else
     solver_title = "Trilinos Theta-Scheme (Crank-Nicolson, p=4)";
 
+  const bool is_neumann = (bc == "neumann");
+  const std::string exact_label = is_neumann
+      ? "u(x, t) = cos(sqrt(" + std::to_string(dim) + ") * t) * prod cos(x_d)"
+      : "u(x, t) = cos(sqrt(" + std::to_string(dim) + ") * t) * prod sin(x_d)";
+
   pcout << "\n========================================================================================\n"
         << "  MMS Convergence Study: " << solver_title << "\n"
         << "  Domain: [0, pi]^" << dim << ", Final time T = " << final_time << "\n"
-        << "  Exact solution: u(x, t) = cos(sqrt(" << dim << ") * t) * prod sin(x_d)\n"
+        << "  Boundary Condition: " << (is_neumann ? "Homogeneous Neumann (sound-hard wall, grad(u).n = 0)" : "Homogeneous Dirichlet (u = 0)") << "\n"
+        << "  Exact solution: " << exact_label << "\n"
         << "  Scaling: " << (use_spatial_scaling ? "Strict Spatial (dt ∝ h^2.5 for p=4)" : "Standard CFL (dt = CFL * h)") << "\n"
         << "  Expected: L2 EOC = " << (use_spatial_scaling ? "5.0 (O(h^5))" : "2.0 (temporal O(dt^2))")
         << " | H1 EOC = " << (use_spatial_scaling ? "4.0 (O(h^4))" : "2.0") << "\n"
@@ -266,8 +300,10 @@ void run_convergence_for_solver(
   std::vector<ConvergenceResult> results;
   results.reserve(levels.size());
 
-  const StandingWaveIC<dim> u0;
-  const StandingWaveV0<dim> v0;
+  const StandingWaveIC<dim> u0_dirichlet;
+  const StandingWaveV0<dim> v0_dirichlet;
+  const AcousticSoundWaveIC<dim> u0_neumann;
+  const AcousticSoundWaveV0<dim> v0_neumann;
 
   for (size_t i = 0; i < levels.size(); ++i)
   {
@@ -300,6 +336,9 @@ void run_convergence_for_solver(
       solver = std::make_unique<WaveSolverTheta<dim>>(/*fe_degree=*/4, /*theta=*/0.5, gamma);
     }
 
+    const auto bc_type = is_neumann ? WaveSolverBase<dim>::BoundaryType::Neumann
+                                    : WaveSolverBase<dim>::BoundaryType::Dirichlet;
+    solver->set_boundary_type(bc_type);
     solver->setup(tria);
 
     const double local_min = tria.last()->diameter() / std::sqrt(double(dim));
@@ -322,14 +361,33 @@ void run_convergence_for_solver(
     dt = final_time / n_steps;
     solver->set_time_step(dt);
 
-    StandingWaveExact<dim> u_prev(-dt);
-    solver->set_initial_conditions(u0, v0, &u_prev);
+    if (is_neumann)
+    {
+      AcousticSoundWaveExact<dim> u_prev(-dt);
+      solver->set_initial_conditions(u0_neumann, v0_neumann, &u_prev);
+    }
+    else
+    {
+      StandingWaveExact<dim> u_prev(-dt);
+      solver->set_initial_conditions(u0_dirichlet, v0_dirichlet, &u_prev);
+    }
 
     solver->run(final_time, /*write_output=*/false);
 
-    StandingWaveExact<dim> sol_exact(final_time);
-    const double e_L2 = solver->compute_error(VectorTools::L2_norm, sol_exact);
-    const double e_H1 = solver->compute_error(VectorTools::H1_seminorm, sol_exact);
+    double e_L2 = 0.0;
+    double e_H1 = 0.0;
+    if (is_neumann)
+    {
+      AcousticSoundWaveExact<dim> sol_exact(final_time);
+      e_L2 = solver->compute_error(VectorTools::L2_norm, sol_exact);
+      e_H1 = solver->compute_error(VectorTools::H1_seminorm, sol_exact);
+    }
+    else
+    {
+      StandingWaveExact<dim> sol_exact(final_time);
+      e_L2 = solver->compute_error(VectorTools::L2_norm, sol_exact);
+      e_H1 = solver->compute_error(VectorTools::H1_seminorm, sol_exact);
+    }
 
     ConvergenceResult res;
     res.refinement = ref;
@@ -401,7 +459,7 @@ void run_convergence_for_solver(
     }
     std::cout << std::string(88, '=') << "\n\n";
 
-    const std::string csv_name = "convergence_" + solver_tag + ".csv";
+    const std::string csv_name = "convergence_" + solver_tag + (is_neumann ? "_neumann" : "") + ".csv";
     const std::string csv_path = get_output_path(csv_name);
     std::ofstream csv(csv_path);
     csv << std::setprecision(14);
@@ -454,7 +512,7 @@ void run_convergence(const ProgramOptions &opts)
   for (const auto &s : solvers_to_run)
   {
     run_convergence_for_solver<dim>(
-        s, levels, final_time, opts.use_spatial_scaling, opts.gamma);
+        s, levels, final_time, opts.use_spatial_scaling, opts.gamma, opts.bc);
   }
 }
 

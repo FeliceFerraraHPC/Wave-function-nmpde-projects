@@ -32,6 +32,12 @@
     - [12.4 Startup Formulation: Fictitious Step u^{-1} = u_{exact}(-dt)](#124-startup-formulation-fictitious-step-u-1--u_exact-dt)
     - [12.5 Fine-Grid Roundoff Saturation Barrier](#125-fine-grid-roundoff-saturation-barrier)
     - [12.6 Verification Results Across the Suite (CG, DG, Theta)](#126-verification-results-across-the-suite-cg-dg-theta)
+13. [Neumann Boundary Conditions & Acoustic Sound Waves (DG Alignment)](#13-neumann-boundary-conditions--acoustic-sound-waves-dg-alignment)
+    - [13.1 Physics of Neumann Boundary Conditions: Sound-Hard Acoustic Walls](#131-physics-of-neumann-boundary-conditions-sound-hard-acoustic-walls)
+    - [13.2 Mathematical Formulation Across Solvers (CG, DG, Theta)](#132-mathematical-formulation-across-solvers-cg-dg-theta)
+    - [13.3 Exact Acoustic Sound Wave Mode (MMS for Neumann BCs)](#133-exact-acoustic-sound-wave-mode-mms-for-neumann-bcs)
+    - [13.4 Acoustic Sound Pulse & Discontinuous Galerkin Advantages](#134-acoustic-sound-pulse--discontinuous-galerkin-advantages)
+    - [13.5 Command-Line Interface & Usage Examples](#135-command-line-interface--usage-examples)
 
 ---
 
@@ -942,3 +948,115 @@ At Level 5 and 6, the theoretical spatial error drops below the hardware floatin
 | **Theta-Scheme (CN)** | 3 | $0.3927$ | 1,089 | $3.014 \times 10^{-3}$ | **1.74** | $4.263 \times 10^{-3}$ | **1.74** | $\mathcal{O}(\Delta t^2)$ |
 | | 4 | $0.1963$ | 4,225 | $8.287 \times 10^{-4}$ | **1.86** | $1.172 \times 10^{-3}$ | **1.86** | $\mathcal{O}(\Delta t^2)$ |
 | | 5 | $0.0982$ | 16,641 | $2.175 \times 10^{-4}$ | **1.93** | $3.076 \times 10^{-4}$ | **1.93** | $\mathcal{O}(\Delta t^2)$ |
+
+---
+
+## 13. Neumann Boundary Conditions & Acoustic Sound Waves (DG Alignment)
+
+### 13.1 Physics of Neumann Boundary Conditions: Sound-Hard Acoustic Walls
+
+In linear acoustics, the acoustic pressure perturbation $p(\mathbf{x}, t)$ satisfies the scalar wave equation:
+$$\frac{\partial^2 p}{\partial t^2} - c^2 \Delta p = 0 \quad \text{in } \Omega \times (0, T].$$
+The acoustic fluid velocity $\mathbf{v}_{\text{fluid}}$ is coupled to the pressure gradient through Euler's linearized momentum equation:
+$$\rho_0 \frac{\partial \mathbf{v}_{\text{fluid}}}{\partial t} = -\nabla p.$$
+At a rigid, impermeable acoustic boundary (such as the rigid walls of an organ pipe, a concert hall, or an acoustic resonator), the normal component of fluid velocity must vanish identically:
+$$\mathbf{v}_{\text{fluid}} \cdot \mathbf{n} = 0 \quad \implies \quad \nabla p \cdot \mathbf{n} = 0 \quad \text{on } \partial\Omega.$$
+This boundary condition is known as a **sound-hard wall** (homogeneous Neumann boundary condition). Unlike homogeneous Dirichlet boundaries ($p = 0$, representing an open pressure-release surface), sound-hard walls reflect acoustic waves with no phase inversion ($+1$ reflection coefficient), causing constructive acoustic interference, standing pressure antinodes, and resonance phenomena.
+
+---
+
+### 13.2 Mathematical Formulation Across Solvers (CG, DG, Theta)
+
+#### 1. Continuous Galerkin (`WaveSolverMatFree` and `WaveSolverTheta`)
+In conforming finite element methods ($V_h \subset H^1(\Omega)$), integration by parts of the Laplacian yields:
+$$\int_\Omega (-\Delta u) v \, d\mathbf{x} = \int_\Omega \nabla u \cdot \nabla v \, d\mathbf{x} - \int_{\partial\Omega} (\nabla u \cdot \mathbf{n}) v \, ds.$$
+When homogeneous Neumann conditions $\nabla u \cdot \mathbf{n} = 0$ are prescribed:
+- The boundary integral vanishes identically: $-\int_{\partial\Omega} (\nabla u \cdot \mathbf{n}) v \, ds = 0$.
+- Homogeneous Neumann is therefore a **natural boundary condition** for conforming Galerkin methods.
+- In implementation, boundary DoFs are left unconstrained (no calls to `VectorTools::interpolate_boundary_values` on $\partial\Omega$). The spatial operator $\mathbf{K}$ naturally computes the correct weak Laplacian without any boundary penalty or modification.
+
+#### 2. Discontinuous Galerkin (`WaveSolverDG`, SIPG Formulation)
+In Discontinuous Galerkin discretizations ($V_h \not\subset H^1(\Omega)$), functions are discontinuous across all faces. The global SIPG bilinear form partitions into volume terms, interior face terms, and boundary face terms:
+$$a_h(u, v) = \sum_{K} \int_K \nabla u \cdot \nabla v \, d\mathbf{x} + \sum_{F \in \mathcal{F}_I} a_h^F(u, v) + \sum_{F \in \mathcal{F}_B} a_h^{\partial K}(u, v).$$
+On interior faces $F \in \mathcal{F}_I$:
+$$a_h^F(u, v) = \int_F \left( -\{\nabla u\} \cdot [v] - \{\nabla v\} \cdot [u] + \sigma [u][v] \right) ds.$$
+On boundary faces $F \in \mathcal{F}_B$:
+- **Dirichlet Boundary** ($\Gamma_D, u = 0$): Enforced weakly by penalizing deviations from $0$:
+  $$a_h^{\partial K}(u, v) = \int_F \left( -(\nabla u \cdot \mathbf{n}) v - (\nabla v \cdot \mathbf{n}) u + 2\sigma u v \right) ds.$$
+- **Neumann Boundary** ($\Gamma_N, \nabla u \cdot \mathbf{n} = 0$): By standard variational calculus, the integration by parts on cell $K$ gives:
+  $$\int_K (-\Delta u) v \, d\mathbf{x} = \int_K \nabla u \cdot \nabla v \, d\mathbf{x} - \int_{\partial K \cap \Gamma_N} (\nabla u \cdot \mathbf{n}) v \, ds.$$
+  Since $\nabla u \cdot \mathbf{n} = 0$, the boundary flux is **identically zero**. Furthermore, because $u$ is unrestricted on $\Gamma_N$, **no penalty term is required**.
+- **Implementation in `WaveOperationDG`**:
+  ```cpp
+  template <int dim, int fe_degree>
+  void WaveOperationDG<dim, fe_degree>::local_apply_boundary_face(...) const
+  {
+    if (boundary_type_ == WaveSolverBase<dim>::BoundaryType::Neumann)
+      return; // Boundary flux is identically zero!
+    // ... Dirichlet SIPG penalty evaluation ...
+  }
+  ```
+  Similarly, in `compute_energy()`, boundary face penalty integrals are skipped when `boundary_type_ == BoundaryType::Neumann`, preserving the exact discrete Hamiltonian structure.
+
+---
+
+### 13.3 Exact Acoustic Sound Wave Mode (MMS for Neumann BCs)
+
+To perform rigorous Method of Manufactured Solutions (MMS) verification for Neumann boundary conditions, we introduce the **acoustic cavity standing wave mode** on $\Omega = (0, \pi)^d$:
+$$u_{\text{exact}}(\mathbf{x}, t) = \cos(\omega t) \prod_{j=0}^{d-1} \cos(x_j), \quad \omega = \sqrt{d}, \quad c = 1.$$
+
+#### Mathematical Verification:
+1. **Governing Equation ($f \equiv 0$)**:
+   $$\frac{\partial^2 u}{\partial t^2} = -\omega^2 \cos(\omega t) \prod_{j=0}^{d-1} \cos(x_j) = -d \, u(\mathbf{x}, t),$$
+   $$\Delta u = \sum_{k=0}^{d-1} \frac{\partial^2 u}{\partial x_k^2} = \sum_{k=0}^{d-1} \left( -\cos(x_k) \cos(\omega t) \prod_{j \neq k} \cos(x_j) \right) = -d \, u(\mathbf{x}, t).$$
+   Therefore:
+   $$\frac{\partial^2 u}{\partial t^2} - \Delta u = -d u - (-d u) = 0 \quad (\text{exact solution with } f = 0).$$
+
+2. **Neumann Boundary Condition**:
+   The gradient is given by:
+   $$\frac{\partial u}{\partial x_k} = -\sin(x_k) \cos(\omega t) \prod_{j \neq k} \cos(x_j).$$
+   On the boundary planes $x_k = 0$ and $x_k = \pi$:
+   $$\left. \frac{\partial u}{\partial x_k} \right|_{x_k = 0} = 0 \quad \text{and} \quad \left. \frac{\partial u}{\partial x_k} \right|_{x_k = \pi} = 0.$$
+   Because the normal vector $\mathbf{n}$ is parallel to the coordinate axis $\mathbf{e}_k$ on each facet of $\Omega = (0, \pi)^d$, we have:
+   $$\nabla u \cdot \mathbf{n} \equiv 0 \quad \text{on all faces of } \partial\Omega.$$
+
+3. **Initial Conditions**:
+   $$u(\mathbf{x}, 0) = \prod_{j=0}^{d-1} \cos(x_j), \quad \frac{\partial u}{\partial t}(\mathbf{x}, 0) = 0.$$
+
+This exact mode allows running the full MMS convergence suite (`--bc neumann`) across all three solvers to verify both $\mathcal{O}(h^5)$ spatial EOC and $\mathcal{O}(\Delta t^2)$ temporal EOC under sound-hard wall boundary conditions.
+
+---
+
+### 13.4 Acoustic Sound Pulse & Discontinuous Galerkin Advantages
+
+In addition to resonant standing waves, the benchmark provides an acoustic sound pulse initial condition (`--wave pulse`):
+$$u_0(\mathbf{x}) = A \exp\left(-\frac{\|\mathbf{x} - \mathbf{x}_0\|^2}{2\sigma_0^2}\right), \quad v_0(\mathbf{x}) = 0.$$
+
+#### Why This Problem Highlights Discontinuous Galerkin (DG):
+1. **Acoustic Shock and Sharp Gradient Tracking**:
+   High-frequency sound waves and acoustic pulses exhibit steep wavefronts. Conforming CG methods can suffer from spurious Gibbs oscillations near steep gradients unless artificial stabilization is introduced. The Discontinuous Galerkin formulation (`WaveSolverDG`) permits jumps across element boundaries and dissipates unresolvable high frequencies via interior penalty fluxes without polluting smooth regions.
+2. **Compact Domain and Rigid Wall Reflections**:
+   When the acoustic pulse expands and impinges upon the Neumann boundaries, it reflects back into the domain. DG handles reflecting boundary faces naturally with zero flux, cleanly resolving the reflected wavefronts.
+3. **High-Order Polynomial Efficiency ($p=4$)**:
+   The tensor-product Gauss-Lobatto element with $p=4$ provides $(p+1)^d = 25$ DoFs per quad (125 DoFs per hex), achieving minimal numerical dispersion over hundreds of wave periods.
+
+---
+
+### 13.5 Command-Line Interface & Usage Examples
+
+The benchmark executable and test script provide flexible flags for boundary conditions and wave selection:
+
+```bash
+# 1. MMS Convergence Study with Neumann Boundary Conditions (dim=2, all solvers)
+./build/WaveBenchmark --mode convergence --solver all --bc neumann --dim 2 --time 1.0
+
+# 2. Benchmark with Acoustic Standing Wave and Sound-Hard Walls
+./build/WaveBenchmark --mode bench --solver all --bc neumann --wave acoustic --dim 2 --refine 6 --time 5.0
+
+# 3. Benchmark with Acoustic Sound Pulse in a Cavity (Observing Wall Reflections)
+./build/WaveBenchmark --mode bench --solver all --bc neumann --wave pulse --dim 2 --refine 6 --time 5.0 --output
+
+# 4. Automated Verification via Unified Test Script
+./test_script.sh --step convergence --bc neumann --time 1.0
+./test_script.sh --step bench --bc neumann --wave acoustic --time 5.0
+```
