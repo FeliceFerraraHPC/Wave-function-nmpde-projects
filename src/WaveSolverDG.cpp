@@ -157,7 +157,7 @@ void WaveOperationDG<dim, fe_degree>::local_apply_boundary_face(
       for (const unsigned int q : fe_eval.quadrature_point_indices())
       {
         const auto normal = fe_eval.get_normal_vector(q);
-        const auto p_vec = fe_eval.get_quadrature_point(q);
+        const auto p_vec = fe_eval.quadrature_point(q);
 
         VectorizedArray<double> g_N;
         for (unsigned int v = 0; v < VectorizedArray<double>::size(); ++v)
@@ -201,7 +201,7 @@ void WaveOperationDG<dim, fe_degree>::local_apply_boundary_face(
       VectorizedArray<double> u_diff = u_val;
       if (non_homogeneous_ && exact_solution_ != nullptr)
       {
-        const auto p_vec = fe_eval.get_quadrature_point(q);
+        const auto p_vec = fe_eval.quadrature_point(q);
         VectorizedArray<double> g_D;
         for (unsigned int v = 0; v < VectorizedArray<double>::size(); ++v)
         {
