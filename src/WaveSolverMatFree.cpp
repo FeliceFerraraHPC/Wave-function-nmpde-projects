@@ -117,7 +117,7 @@ void WaveSolverMatFree<dim>::setup(const Triangulation<dim> &tria)
   constraints_.clear();
   constraints_.reinit(locally_relevant_dofs_);
   DoFTools::make_hanging_node_constraints(dof_handler_, constraints_);
-  if (this->boundary_type_ == WaveSolverBase<dim>::BoundaryType::Dirichlet)
+  if (this->boundary_type_ == WaveSolverBase<dim>::BoundaryType::Dirichlet && !this->non_homogeneous_)
   {
     VectorTools::interpolate_boundary_values(mapping_,
                                              dof_handler_,
@@ -277,6 +277,21 @@ WaveSolverMatFree<dim>::run(double T, bool write_output)
     old_old_solution_.swap(old_solution_);
     old_solution_.swap(solution_);
     wave_op.apply(solution_, prev_solutions);
+
+    if (this->boundary_type_ == WaveSolverBase<dim>::BoundaryType::Dirichlet &&
+        this->non_homogeneous_ && this->exact_solution_ != nullptr)
+    {
+      std::map<types::global_dof_index, double> boundary_values;
+      const_cast<Function<dim> *>(this->exact_solution_)->set_time(time_);
+      VectorTools::interpolate_boundary_values(
+          mapping_, dof_handler_, 0, *this->exact_solution_, boundary_values);
+      for (const auto &pair : boundary_values)
+      {
+        if (solution_.locally_owned_elements().is_element(pair.first))
+          solution_[pair.first] = pair.second;
+      }
+    }
+
     constraints_.distribute(solution_);
 
     wtime += timer.wall_time();

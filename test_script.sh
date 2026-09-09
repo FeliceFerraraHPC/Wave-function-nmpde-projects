@@ -9,12 +9,14 @@ set -e
 #                         [--gamma G]   (default: 0.0)
 #                         [--bc BC]     (default: dirichlet)
 #                         [--wave WAVE] (default: default)
+#                         [--non-homogeneous]
 # ============================================================
 STEP="all"
 FINAL_TIME="1.0"
 GAMMA="0.0"
 BC="dirichlet"
 WAVE="default"
+NON_HOMOGENEOUS=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -23,6 +25,7 @@ while [[ $# -gt 0 ]]; do
         --gamma) GAMMA="$2";      shift 2 ;;
         --bc)    BC="$2";         shift 2 ;;
         --wave)  WAVE="$2";       shift 2 ;;
+        --non-homogeneous|--inhomogeneous) NON_HOMOGENEOUS="--non-homogeneous"; shift ;;
         *) echo "Unknown argument: $1"; exit 1 ;;
     esac
 done
@@ -80,14 +83,15 @@ run_benchmarks() {
 # Step 2: Convergence Studies (Manufactured Solution, dim=2)
 # ============================================================
 run_convergence() {
-    echo ">>> Step 2: Running Convergence Studies (dim=2, bc=${BC})"
+    echo ">>> Step 2: Running Convergence Studies (dim=2, bc=${BC}, ${NON_HOMOGENEOUS:-homogeneous})"
     for s in "${SOLVERS[@]}"; do
         echo "Running convergence study for solver=${s}..."
         "${EXEC}" --mode convergence \
                   --solver "${s}" \
                   --dim 2 \
                   --time "${FINAL_TIME}" \
-                  --bc "${BC}"
+                  --bc "${BC}" \
+                  ${NON_HOMOGENEOUS}
     done
 }
 

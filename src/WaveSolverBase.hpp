@@ -344,14 +344,23 @@ public:
     boundary_type_ = bt;
   }
 
-  virtual BoundaryType
-  get_boundary_type() const
+  virtual void
+  set_non_homogeneous(bool nh, const Function<dim> *exact_solution = nullptr)
   {
-    return boundary_type_;
+    non_homogeneous_ = nh;
+    exact_solution_ = exact_solution;
+  }
+
+  virtual bool
+  is_non_homogeneous() const
+  {
+    return non_homogeneous_;
   }
 
 protected:
   BoundaryType boundary_type_ = BoundaryType::Dirichlet;
+  bool non_homogeneous_ = false;
+  const Function<dim> *exact_solution_ = nullptr;
 };
 
 #endif // WAVE_SOLVER_BASE_HPP

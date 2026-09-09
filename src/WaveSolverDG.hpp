@@ -40,7 +40,15 @@ public:
                   double cell_diameter = 1.0,
                   double gamma = 0.0,
                   typename WaveSolverBase<dim>::BoundaryType boundary_type =
-                      WaveSolverBase<dim>::BoundaryType::Dirichlet);
+                      WaveSolverBase<dim>::BoundaryType::Dirichlet,
+                  bool non_homogeneous = false,
+                  const Function<dim> *exact_solution = nullptr);
+
+  void
+  set_current_time(double t) const
+  {
+    current_time_ = t;
+  }
 
   void
   apply(LinearAlgebra::distributed::Vector<double> &dst,
@@ -74,6 +82,9 @@ private:
   const VectorizedArray<double> delta_t_sqr_;
   const double h_inv_; ///< 1/h for SIPG penalty
   const typename WaveSolverBase<dim>::BoundaryType boundary_type_;
+  const bool non_homogeneous_;
+  const Function<dim> *exact_solution_;
+  mutable double current_time_ = 0.0;
 
   // Lumped inverse *effective* mass, see WaveOperationCG for details.
   LinearAlgebra::distributed::Vector<double> inv_effective_mass_matrix_;

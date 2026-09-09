@@ -15,6 +15,7 @@
  *                                         Default: 0 (undamped, energy-conserving)
  *   --bc       [dirichlet|neumann]        Boundary condition. Default: dirichlet
  *   --wave     [default|acoustic|pulse]   Initial wave profile. Default: default
+ *   --non-homogeneous                     Enable non-homogeneous (time-dependent) boundary conditions
  *   --cfl-scaling                         Use standard CFL (dt = CFL * h) in convergence mode
  *   --spatial-scaling                     Use strict spatial scaling (dt ∝ h^2.5) in convergence mode
  *   --output                              Enable VTU output (disabled by default)
@@ -84,6 +85,7 @@ struct ProgramOptions
   bool use_spatial_scaling = true;  // dt ∝ h^2.5 for p=4 in convergence mode
   std::string bc = "dirichlet";     // dirichlet | neumann
   std::string wave = "default";     // default | acoustic | pulse
+  bool non_homogeneous = false;    // non-homogeneous (time-dependent) boundary conditions
 };
 
 ProgramOptions
@@ -120,6 +122,8 @@ parse_args(int argc, char **argv)
       opts.bc = argv[++i];
     else if (arg == "--wave" && i + 1 < argc)
       opts.wave = argv[++i];
+    else if (arg == "--non-homogeneous" || arg == "--inhomogeneous")
+      opts.non_homogeneous = true;
   }
   return opts;
 }
@@ -269,7 +273,8 @@ void run_convergence_for_solver(
     double final_time,
     bool use_spatial_scaling,
     double gamma,
-    const std::string &bc = "dirichlet")
+    const std::string &bc = "dirichlet",
+    bool non_homogeneous = false)
 {
   const bool is_root = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
   ConditionalOStream pcout(std::cout, is_root);
@@ -283,14 +288,34 @@ void run_convergence_for_solver(
     solver_title = "Trilinos Theta-Scheme (Crank-Nicolson, p=4)";
 
   const bool is_neumann = (bc == "neumann");
-  const std::string exact_label = is_neumann
+  
+  std::string bc_label;
+  if (!non_homogeneous)
+  {
+    bc_label = is_neumann ? "Homogeneous Neumann (sound-hard wall, grad(u).n = 0)"
+                          : "Homogeneous Dirichlet (u = 0)";
+  }
+  else
+  {
+    bc_label = is_neumann ? "Non-Homogeneous Neumann (grad(u).n = g_N(x, t))"
+                          : "Non-Homogeneous Dirichlet (u = g_D(x, t))";
+  }
+
+  // Exact solution selection:
+  // 1. Homogeneous Dirichlet: StandingWaveExact (u = 0 on boundary)
+  // 2. Homogeneous Neumann: AcousticSoundWaveExact (grad(u).n = 0 on boundary)
+  // 3. Non-Homogeneous Dirichlet: AcousticSoundWaveExact (u = cos(sqrt(d)*t)*prod(cos(x_d)) != 0 on boundary)
+  // 4. Non-Homogeneous Neumann: StandingWaveExact (grad(u).n != 0 on boundary)
+  const bool use_acoustic = (!non_homogeneous && is_neumann) || (non_homogeneous && !is_neumann);
+
+  const std::string exact_label = use_acoustic
       ? "u(x, t) = cos(sqrt(" + std::to_string(dim) + ") * t) * prod cos(x_d)"
       : "u(x, t) = cos(sqrt(" + std::to_string(dim) + ") * t) * prod sin(x_d)";
 
   pcout << "\n========================================================================================\n"
         << "  MMS Convergence Study: " << solver_title << "\n"
         << "  Domain: [0, pi]^" << dim << ", Final time T = " << final_time << "\n"
-        << "  Boundary Condition: " << (is_neumann ? "Homogeneous Neumann (sound-hard wall, grad(u).n = 0)" : "Homogeneous Dirichlet (u = 0)") << "\n"
+        << "  Boundary Condition: " << bc_label << "\n"
         << "  Exact solution: " << exact_label << "\n"
         << "  Scaling: " << (use_spatial_scaling ? "Strict Spatial (dt ∝ h^2.5 for p=4)" : "Standard CFL (dt = CFL * h)") << "\n"
         << "  Expected: L2 EOC = " << (use_spatial_scaling ? "5.0 (O(h^5))" : "2.0 (temporal O(dt^2))")
@@ -299,11 +324,6 @@ void run_convergence_for_solver(
 
   std::vector<ConvergenceResult> results;
   results.reserve(levels.size());
-
-  const StandingWaveIC<dim> u0_dirichlet;
-  const StandingWaveV0<dim> v0_dirichlet;
-  const AcousticSoundWaveIC<dim> u0_neumann;
-  const AcousticSoundWaveV0<dim> v0_neumann;
 
   for (size_t i = 0; i < levels.size(); ++i)
   {
@@ -339,7 +359,6 @@ void run_convergence_for_solver(
     const auto bc_type = is_neumann ? WaveSolverBase<dim>::BoundaryType::Neumann
                                     : WaveSolverBase<dim>::BoundaryType::Dirichlet;
     solver->set_boundary_type(bc_type);
-    solver->setup(tria);
 
     const double local_min = tria.last()->diameter() / std::sqrt(double(dim));
     const double h_cell = -Utilities::MPI::max(-local_min, MPI_COMM_WORLD);
@@ -361,33 +380,37 @@ void run_convergence_for_solver(
     dt = final_time / n_steps;
     solver->set_time_step(dt);
 
-    if (is_neumann)
+    std::unique_ptr<Function<dim>> sol_exact;
+    std::unique_ptr<Function<dim>> u0;
+    std::unique_ptr<Function<dim>> v0;
+    std::unique_ptr<Function<dim>> u_prev;
+
+    if (use_acoustic)
     {
-      AcousticSoundWaveExact<dim> u_prev(-dt);
-      solver->set_initial_conditions(u0_neumann, v0_neumann, &u_prev);
+      sol_exact = std::make_unique<AcousticSoundWaveExact<dim>>(final_time);
+      u0 = std::make_unique<AcousticSoundWaveIC<dim>>();
+      v0 = std::make_unique<AcousticSoundWaveV0<dim>>();
+      u_prev = std::make_unique<AcousticSoundWaveExact<dim>>(-dt);
     }
     else
     {
-      StandingWaveExact<dim> u_prev(-dt);
-      solver->set_initial_conditions(u0_dirichlet, v0_dirichlet, &u_prev);
+      sol_exact = std::make_unique<StandingWaveExact<dim>>(final_time);
+      u0 = std::make_unique<StandingWaveIC<dim>>();
+      v0 = std::make_unique<StandingWaveV0<dim>>();
+      u_prev = std::make_unique<StandingWaveExact<dim>>(-dt);
     }
+
+    if (non_homogeneous)
+      solver->set_non_homogeneous(true, sol_exact.get());
+
+    solver->setup(tria);
+    solver->set_initial_conditions(*u0, *v0, u_prev.get());
 
     solver->run(final_time, /*write_output=*/false);
 
-    double e_L2 = 0.0;
-    double e_H1 = 0.0;
-    if (is_neumann)
-    {
-      AcousticSoundWaveExact<dim> sol_exact(final_time);
-      e_L2 = solver->compute_error(VectorTools::L2_norm, sol_exact);
-      e_H1 = solver->compute_error(VectorTools::H1_seminorm, sol_exact);
-    }
-    else
-    {
-      StandingWaveExact<dim> sol_exact(final_time);
-      e_L2 = solver->compute_error(VectorTools::L2_norm, sol_exact);
-      e_H1 = solver->compute_error(VectorTools::H1_seminorm, sol_exact);
-    }
+    sol_exact->set_time(final_time);
+    const double e_L2 = solver->compute_error(VectorTools::L2_norm, *sol_exact);
+    const double e_H1 = solver->compute_error(VectorTools::H1_seminorm, *sol_exact);
 
     ConvergenceResult res;
     res.refinement = ref;
@@ -459,7 +482,13 @@ void run_convergence_for_solver(
     }
     std::cout << std::string(88, '=') << "\n\n";
 
-    const std::string csv_name = "convergence_" + solver_tag + (is_neumann ? "_neumann" : "") + ".csv";
+    std::string csv_suffix = "";
+    if (is_neumann)
+      csv_suffix += "_neumann";
+    if (non_homogeneous)
+      csv_suffix += "_nonhomogeneous";
+
+    const std::string csv_name = "convergence_" + solver_tag + csv_suffix + ".csv";
     const std::string csv_path = get_output_path(csv_name);
     std::ofstream csv(csv_path);
     csv << std::setprecision(14);
@@ -512,7 +541,7 @@ void run_convergence(const ProgramOptions &opts)
   for (const auto &s : solvers_to_run)
   {
     run_convergence_for_solver<dim>(
-        s, levels, final_time, opts.use_spatial_scaling, opts.gamma, opts.bc);
+        s, levels, final_time, opts.use_spatial_scaling, opts.gamma, opts.bc, opts.non_homogeneous);
   }
 }
 

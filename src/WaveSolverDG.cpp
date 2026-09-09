@@ -10,8 +10,17 @@ WaveOperationDG<dim, fe_degree>::WaveOperationDG(
     const double time_step,
     const double cell_diameter,
     const double gamma,
-    typename WaveSolverBase<dim>::BoundaryType boundary_type)
-    : data_(data_in), time_step_(time_step), gamma_(gamma), delta_t_sqr_(make_vectorized_array(time_step * time_step)), h_inv_(1.0 / cell_diameter), boundary_type_(boundary_type)
+    typename WaveSolverBase<dim>::BoundaryType boundary_type,
+    bool non_homogeneous,
+    const Function<dim> *exact_solution)
+    : data_(data_in),
+      time_step_(time_step),
+      gamma_(gamma),
+      delta_t_sqr_(make_vectorized_array(time_step * time_step)),
+      h_inv_(1.0 / cell_diameter),
+      boundary_type_(boundary_type),
+      non_homogeneous_(non_homogeneous),
+      exact_solution_(exact_solution)
 {
   data_.initialize_dof_vector(inv_effective_mass_matrix_);
   FEEvaluation<dim, fe_degree> fe_eval(data_);
@@ -39,7 +48,7 @@ WaveOperationDG<dim, fe_degree>::WaveOperationDG(
 }
 
 // ---------------------------------------------------------------------------
-// Cell integral: volume terms (same as CG)
+// Cell integral: volume terms
 // ---------------------------------------------------------------------------
 template <int dim, int fe_degree>
 void WaveOperationDG<dim, fe_degree>::local_apply(
@@ -127,7 +136,7 @@ void WaveOperationDG<dim, fe_degree>::local_apply_face(
 }
 
 // ---------------------------------------------------------------------------
-// Boundary face integral: weak Dirichlet u = 0 via SIPG
+// Boundary face integral: weak Dirichlet / Neumann via SIPG
 // ---------------------------------------------------------------------------
 template <int dim, int fe_degree>
 void WaveOperationDG<dim, fe_degree>::local_apply_boundary_face(
@@ -137,7 +146,39 @@ void WaveOperationDG<dim, fe_degree>::local_apply_boundary_face(
     const std::pair<unsigned int, unsigned int> &face_range) const
 {
   if (boundary_type_ == WaveSolverBase<dim>::BoundaryType::Neumann)
-    return; // Homogeneous Neumann: boundary flux is identically zero!
+  {
+    if (!non_homogeneous_ || exact_solution_ == nullptr)
+      return; // Homogeneous Neumann: boundary flux is identically zero!
+
+    FEFaceEvaluation<dim, fe_degree> fe_eval(data, true);
+    for (unsigned int face = face_range.first; face < face_range.second; ++face)
+    {
+      fe_eval.reinit(face);
+      for (const unsigned int q : fe_eval.quadrature_point_indices())
+      {
+        const auto normal = fe_eval.get_normal_vector(q);
+        const auto p_vec = fe_eval.get_quadrature_point(q);
+
+        VectorizedArray<double> g_N;
+        for (unsigned int v = 0; v < VectorizedArray<double>::size(); ++v)
+        {
+          Point<dim> p;
+          for (unsigned int d = 0; d < dim; ++d)
+            p[d] = p_vec[d][v];
+          Tensor<1, dim> grad_val = exact_solution_->gradient(p);
+          Tensor<1, dim> n_val;
+          for (unsigned int d = 0; d < dim; ++d)
+            n_val[d] = normal[d][v];
+          g_N[v] = grad_val * n_val;
+        }
+
+        fe_eval.submit_value(delta_t_sqr_ * g_N, q);
+      }
+      fe_eval.integrate(EvaluationFlags::values);
+      fe_eval.distribute_local_to_global(dst);
+    }
+    return;
+  }
 
   FEFaceEvaluation<dim, fe_degree> fe_eval(data, true);
 
@@ -157,9 +198,24 @@ void WaveOperationDG<dim, fe_degree>::local_apply_boundary_face(
       const auto u_val = fe_eval.get_value(q);
       const auto grad_u = fe_eval.get_gradient(q);
 
-      // Dirichlet u = 0 penalty flux
-      const auto flux_val = grad_u * normal - 2.0 * sigma * u_val;
-      const auto flux_grad = u_val * normal;
+      VectorizedArray<double> u_diff = u_val;
+      if (non_homogeneous_ && exact_solution_ != nullptr)
+      {
+        const auto p_vec = fe_eval.get_quadrature_point(q);
+        VectorizedArray<double> g_D;
+        for (unsigned int v = 0; v < VectorizedArray<double>::size(); ++v)
+        {
+          Point<dim> p;
+          for (unsigned int d = 0; d < dim; ++d)
+            p[d] = p_vec[d][v];
+          g_D[v] = exact_solution_->value(p);
+        }
+        u_diff -= g_D;
+      }
+
+      // Dirichlet penalty flux
+      const auto flux_val = grad_u * normal - 2.0 * sigma * u_diff;
+      const auto flux_grad = u_diff * normal;
 
       fe_eval.submit_value(delta_t_sqr_ * flux_val, q);
       fe_eval.submit_gradient(delta_t_sqr_ * flux_grad, q);
@@ -224,7 +280,8 @@ void WaveSolverDG<dim>::setup(const Triangulation<dim> &tria)
       update_normal_vectors | update_inverse_jacobians;
   additional_data.mapping_update_flags_boundary_faces =
       update_values | update_gradients | update_JxW_values |
-      update_normal_vectors | update_inverse_jacobians;
+      update_normal_vectors | update_inverse_jacobians |
+      update_quadrature_points;
 
   matrix_free_data_.reinit(mapping_,
                            dof_handler_,
@@ -289,6 +346,7 @@ void WaveSolverDG<dim>::set_initial_conditions(const Function<dim> &u0,
   }
   else
   {
+    // u^{-1} = u0 - dt * v0  (leapfrog startup)
     old_solution_ = u0_vec;
     old_solution_.add(-time_step_, v0_vec);
   }
@@ -308,27 +366,30 @@ void WaveSolverDG<dim>::output_results(unsigned int timestep_number)
   data_out.attach_dof_handler(dof_handler_);
   data_out.add_data_vector(solution_, "solution");
   data_out.build_patches(mapping_);
-  data_out.write_vtu_with_pvtu_record(
-      get_output_dir(), "dg_solution", timestep_number, MPI_COMM_WORLD, 3);
 
-  solution_.zero_out_ghost_values();
+  DataOutBase::VtkFlags flags;
+  flags.compression_level = DataOutBase::CompressionLevel::best_speed;
+  data_out.set_flags(flags);
+  data_out.write_vtu_with_pvtu_record(
+      get_output_dir(), "solution", timestep_number, MPI_COMM_WORLD, 3);
 }
 
 // ============================================================================
-// run()
+// run() -- main time loop
 // ============================================================================
 template <int dim>
 double
 WaveSolverDG<dim>::run(double T, bool write_output)
 {
-  Assert(tria_ptr_ != nullptr, ExcNotInitialized());
-
-  const double local_min = tria_ptr_->last()->diameter() / std::sqrt(double(dim));
+  const double local_min =
+      tria_ptr_->last()->diameter() / std::sqrt(double(dim));
   const double global_min =
       -Utilities::MPI::max(-local_min, MPI_COMM_WORLD);
+
   const double dt_old = time_step_;
 
-  if (!user_time_step_ || time_step_ <= 0.0)
+  // If time_step_ has not been set, use CFL condition.
+  if (time_step_ <= 0.0)
     time_step_ = cfl_number_ * global_min;
 
   // Round to integer number of steps to land exactly at T.
@@ -349,7 +410,8 @@ WaveSolverDG<dim>::run(double T, bool write_output)
 
   // h_inv for SIPG penalty = 1 / global_min_cell_diameter
   WaveOperationDG<dim, fe_degree> wave_op(
-      matrix_free_data_, time_step_, global_min, gamma_, this->boundary_type_);
+      matrix_free_data_, time_step_, global_min, gamma_, this->boundary_type_,
+      this->non_homogeneous_, this->exact_solution_);
 
   unsigned int timestep_number = 1;
   Timer timer;
@@ -362,6 +424,10 @@ WaveSolverDG<dim>::run(double T, bool write_output)
   {
     time_ = step * time_step_;
     timer.restart();
+
+    wave_op.set_current_time((step - 1) * time_step_);
+    if (this->exact_solution_ != nullptr)
+      const_cast<Function<dim> *>(this->exact_solution_)->set_time((step - 1) * time_step_);
 
     old_old_solution_.swap(old_solution_);
     old_solution_.swap(solution_);
