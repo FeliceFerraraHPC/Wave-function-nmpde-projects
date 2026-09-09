@@ -1060,3 +1060,108 @@ The benchmark executable and test script provide flexible flags for boundary con
 ./test_script.sh --step convergence --bc neumann --time 1.0
 ./test_script.sh --step bench --bc neumann --wave acoustic --time 5.0
 ```
+
+---
+
+## 14. Non-Homogeneous (Inhomogeneous) Boundary Conditions
+
+To rigorously test boundary handling under dynamic external excitation, the codebase supports **non-homogeneous (time-dependent)** boundary conditions (`--non-homogeneous` / `--inhomogeneous`):
+1. **Non-Homogeneous Dirichlet Boundary Condition**:
+   $$u(\mathbf{x}, t) = g_D(\mathbf{x}, t) \quad \text{on } \partial\Omega \times (0, T].$$
+2. **Non-Homogeneous Neumann Boundary Condition**:
+   $$\nabla u(\mathbf{x}, t) \cdot \mathbf{n} = g_N(\mathbf{x}, t) \quad \text{on } \partial\Omega \times (0, T].$$
+
+### 14.1 Variational Formulations
+
+#### 1. Discontinuous Galerkin (SIPG Formulation)
+In Discontinuous Galerkin, boundary conditions are incorporated purely through weak boundary face integrals without altering nodal degrees of freedom or changing sparsity patterns.
+
+- **Non-Homogeneous Dirichlet**:
+  When $u|_{\partial\Omega} = g_D$, the standard SIPG boundary face operator penalizes deviations $(u - g_D)$ from the prescribed trace:
+  $$a_h^{\partial K}(u, v) = \int_{\partial K \cap \Gamma_D} \left( -(\nabla u \cdot \mathbf{n}) v - (\nabla v \cdot \mathbf{n}) (u - g_D) + 2\sigma (u - g_D) v \right) ds.$$
+  In [`WaveOperationDG::local_apply_boundary_face`](file:///Users/feliceferrara/amsc_mk_25-shared-folder/pde/Wave-function-nmpde-projects/src/WaveSolverDG.cpp#L150-L195), evaluating $g_D(\mathbf{x}_q, t^n)$ at face quadrature points produces:
+  ```cpp
+  const auto u_val_diff = u_val - g_val;
+  fe_eval.submit_value(2.0 * penalty * u_val_diff - u_grad_n, q);
+  fe_eval.submit_normal_derivative(-u_val_diff, q);
+  ```
+- **Non-Homogeneous Neumann**:
+  Integration by parts on element $K$ yields $-\int_{\partial K \cap \Gamma_N} (\nabla u \cdot \mathbf{n}) v \, ds = -\int_{\partial K \cap \Gamma_N} g_N v \, ds$.
+  Because $u$ is unconstrained, the penalty is identically zero:
+  $$\text{Flux}(v) = -g_N(\mathbf{x}, t) v.$$
+  In [`WaveOperationDG::local_apply_boundary_face`](file:///Users/feliceferrara/amsc_mk_25-shared-folder/pde/Wave-function-nmpde-projects/src/WaveSolverDG.cpp#L196-L225):
+  ```cpp
+  const auto normal_grad_exact = exact_solution_->gradient(q_point, current_time_);
+  const auto g_N = normal_grad_exact * normal;
+  fe_eval.submit_value(-g_N, q);
+  fe_eval.submit_normal_derivative(VectorizedArray<double>(), q);
+  ```
+
+#### 2. Continuous Galerkin (CG Formulation)
+- **Non-Homogeneous Dirichlet**:
+  In conforming Continuous Galerkin (`WaveSolverMatFree`), Dirichlet boundary DoFs are not locked to zero. At each time step $t^n$, the boundary DoFs of $u^n$ are explicitly updated with the exact trace $g_D(\mathbf{x}, t^n)$ using `VectorTools::interpolate_boundary_values`. The interior nodes are then updated via the leapfrog stencil:
+  $$u^{n+1} = 2u^n - u^{n-1} - \Delta t^2 \mathbf{M}_L^{-1} \mathbf{K} u^n.$$
+- **Non-Homogeneous Neumann**:
+  In conforming CG, non-homogeneous Neumann conditions require assembling the boundary surface load vector $\int_{\partial\Omega} g_N v \, ds$. Since the matrix-free CG operator uses a cell-only integration loop (`cell_loop`), CG with non-homogeneous Neumann is skipped with a descriptive message.
+
+---
+
+### 14.2 Complementary Manufactured Solutions for MMS
+
+To test non-homogeneous boundaries without trivial zero traces, the convergence harness selects exact solutions whose boundary values are non-zero:
+
+1. **For Non-Homogeneous Dirichlet MMS**:
+   Uses the acoustic standing wave $u(\mathbf{x}, t) = \cos(\sqrt{d} t) \prod_{j=0}^{d-1} \cos(x_j)$.
+   On $\partial(0, \pi)^d$, $\cos(0) = 1$ and $\cos(\pi) = -1$, giving a non-trivial time-dependent boundary trace $g_D(\mathbf{x}, t) \neq 0$.
+
+2. **For Non-Homogeneous Neumann MMS**:
+   Uses the standing wave $u(\mathbf{x}, t) = \cos(\sqrt{d} t) \prod_{j=0}^{d-1} \sin(x_j)$.
+   The normal gradient satisfies:
+   $$\left. \frac{\partial u}{\partial x_k} \right|_{x_k = 0} = \cos(\sqrt{d} t) \prod_{j \neq k} \sin(x_j) \neq 0, \quad \left. \frac{\partial u}{\partial x_k} \right|_{x_k = \pi} = -\cos(\sqrt{d} t) \prod_{j \neq k} \sin(x_j) \neq 0,$$
+   generating a non-trivial boundary flux $g_N(\mathbf{x}, t) \neq 0$.
+
+---
+
+### 14.3 Empirical Verification Results ($p=4$, $\Omega = (0, \pi)^2$, $T=1.0$)
+
+#### Non-Homogeneous Dirichlet MMS ($u|_{\partial\Omega} = \cos(\sqrt{2}t)\cos(x)\cos(y)$)
+
+- **Continuous Galerkin (`WaveSolverMatFree`, $p=4$)**:
+  | Refinement | $h$ | DOFs | $L^2$ Error | $L^2$ EOC | $H^1$ Error | $H^1$ EOC |
+  | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+  | 2 | $7.854 \times 10^{-1}$ | 289 | $2.703 \times 10^{-5}$ | — | $8.162 \times 10^{-5}$ | — |
+  | 3 | $3.927 \times 10^{-1}$ | 1,089 | $8.384 \times 10^{-7}$ | **5.01** | $2.900 \times 10^{-6}$ | **4.81** |
+  | 4 | $1.964 \times 10^{-1}$ | 4,225 | $2.631 \times 10^{-8}$ | **4.99** | $1.268 \times 10^{-7}$ | **4.52** |
+
+- **Discontinuous Galerkin (`WaveSolverDG`, SIPG, $p=4$)**:
+  | Refinement | $h$ | DOFs | $L^2$ Error | $L^2$ EOC | $H^1$ Error | $H^1$ EOC |
+  | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+  | 2 | $7.854 \times 10^{-1}$ | 400 | $2.252 \times 10^{-6}$ | — | $5.060 \times 10^{-5}$ | — |
+  | 3 | $3.927 \times 10^{-1}$ | 1,600 | $1.007 \times 10^{-7}$ | **4.48** | $4.550 \times 10^{-6}$ | **3.48** |
+  | 4 | $1.964 \times 10^{-1}$ | 6,400 | $3.319 \times 10^{-9}$ | **4.92** | $1.585 \times 10^{-7}$ | **4.84** |
+
+#### Non-Homogeneous Neumann MMS ($\nabla u \cdot \mathbf{n}|_{\partial\Omega} = \pm \cos(\sqrt{2}t)\sin(x)\sin(y)$)
+
+- **Discontinuous Galerkin (`WaveSolverDG`, SIPG, $p=4$)**:
+  | Refinement | $h$ | DOFs | $L^2$ Error | $L^2$ EOC | $H^1$ Error | $H^1$ EOC |
+  | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+  | 2 | $7.854 \times 10^{-1}$ | 400 | $3.641 \times 10^{-6}$ | — | $4.287 \times 10^{-5}$ | — |
+  | 3 | $3.927 \times 10^{-1}$ | 1,600 | $1.060 \times 10^{-7}$ | **5.10** | $3.643 \times 10^{-6}$ | **3.56** |
+  | 4 | $1.964 \times 10^{-1}$ | 6,400 | $4.377 \times 10^{-9}$ | **4.60** | $1.425 \times 10^{-7}$ | **4.68** |
+
+---
+
+### 14.4 Command-Line Usage
+
+```bash
+# 1. Non-homogeneous Dirichlet convergence study
+./build/WaveBenchmark --mode convergence --solver all --bc dirichlet --non-homogeneous --dim 2 --time 1.0
+
+# 2. Non-homogeneous Neumann convergence study (DG solver)
+./build/WaveBenchmark --mode convergence --solver dg --bc neumann --non-homogeneous --dim 2 --time 1.0
+
+# 3. Via unified test script
+./test_script.sh --step convergence --bc dirichlet --non-homogeneous --time 1.0
+./test_script.sh --step convergence --bc neumann --non-homogeneous --time 1.0
+```
+
