@@ -71,11 +71,13 @@ struct ProgramOptions
   std::string mode = "bench";       // bench | convergence | dispersion | both
   int dim = 2;                      // spatial dimension (2 or 3)
   unsigned int refine = 6;          // global refinement levels
+  bool user_refine = false;         // was --refine explicitly specified?
   double final_time = 45.0;         // final simulation time
   std::string solver = "all";       // all | theta | cg | dg
   double gamma = 0.0;               // damping coeff in u_tt - Delta u + gamma*u_t = 0
   bool write_output = true;         // write VTU files?
   unsigned int target_dofs = 16000; // matched DOF target for dispersion p-study
+  bool use_spatial_scaling = true;  // dt ∝ h^2.5 for p=4 in convergence mode
 };
 
 ProgramOptions
@@ -90,7 +92,10 @@ parse_args(int argc, char **argv)
     else if (arg == "--dim" && i + 1 < argc)
       opts.dim = std::stoi(argv[++i]);
     else if (arg == "--refine" && i + 1 < argc)
+    {
       opts.refine = std::stoul(argv[++i]);
+      opts.user_refine = true;
+    }
     else if (arg == "--time" && i + 1 < argc)
       opts.final_time = std::stod(argv[++i]);
     else if (arg == "--solver" && i + 1 < argc)
@@ -101,6 +106,10 @@ parse_args(int argc, char **argv)
       opts.write_output = true;
     else if (arg == "--target-dofs" && i + 1 < argc)
       opts.target_dofs = static_cast<unsigned int>(std::stoul(argv[++i]));
+    else if (arg == "--cfl-scaling")
+      opts.use_spatial_scaling = false;
+    else if (arg == "--spatial-scaling")
+      opts.use_spatial_scaling = true;
   }
   return opts;
 }
@@ -212,22 +221,240 @@ void run_benchmark(const ProgramOptions &opts)
 }
 
 // ============================================================================
-// Convergence mode: theta-scheme manufactured-solution test
 // ============================================================================
+// Convergence mode: Unified Method of Manufactured Solutions (MMS)
+// ============================================================================
+struct ConvergenceResult
+{
+  unsigned int            refinement = 0;
+  double                  h = 0.0;
+  types::global_dof_index n_dofs = 0;
+  double                  l2_error = 0.0;
+  double                  l2_eoc = 0.0;
+  double                  h1_error = 0.0;
+  double                  h1_eoc = 0.0;
+};
+
+template <int dim>
+void run_convergence_for_solver(
+    const std::string &solver_tag,
+    const std::vector<unsigned int> &levels,
+    double final_time,
+    bool use_spatial_scaling,
+    double gamma)
+{
+  const bool is_root = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+  ConditionalOStream pcout(std::cout, is_root);
+
+  std::string solver_title;
+  if (solver_tag == "cg")
+    solver_title = "Matrix-Free Continuous Galerkin (CG, p=4)";
+  else if (solver_tag == "dg")
+    solver_title = "Matrix-Free Discontinuous Galerkin (SIPG, p=4)";
+  else
+    solver_title = "Trilinos Theta-Scheme (Crank-Nicolson, p=4)";
+
+  pcout << "\n========================================================================================\n"
+        << "  MMS Convergence Study: " << solver_title << "\n"
+        << "  Domain: [0, pi]^" << dim << ", Final time T = " << final_time << "\n"
+        << "  Exact solution: u(x, t) = cos(sqrt(" << dim << ") * t) * prod sin(x_d)\n"
+        << "  Scaling: " << (use_spatial_scaling ? "Strict Spatial (dt ∝ h^2.5 for p=4)" : "Standard CFL (dt = CFL * h)") << "\n"
+        << "  Expected: L2 EOC = " << (use_spatial_scaling ? "5.0 (O(h^5))" : "2.0 (temporal O(dt^2))")
+        << " | H1 EOC = " << (use_spatial_scaling ? "4.0 (O(h^4))" : "2.0") << "\n"
+        << "========================================================================================\n\n";
+
+  std::vector<ConvergenceResult> results;
+  results.reserve(levels.size());
+
+  const StandingWaveIC<dim> u0;
+  const StandingWaveV0<dim> v0;
+
+  for (size_t i = 0; i < levels.size(); ++i)
+  {
+    const unsigned int ref = levels[i];
+    pcout << ">>> Running Refinement Level " << ref << "..." << std::flush;
+
+#ifdef DEAL_II_WITH_P4EST
+    parallel::distributed::Triangulation<dim> tria(MPI_COMM_WORLD);
+#else
+    Triangulation<dim> tria;
+#endif
+    GridGenerator::hyper_cube(tria, 0.0, numbers::PI);
+    tria.refine_global(ref);
+
+    std::unique_ptr<WaveSolverBase<dim>> solver;
+    double cfl = 0.025;
+    if (solver_tag == "cg")
+    {
+      cfl = 0.1 / WaveSolverMatFree<dim>::fe_degree;
+      solver = std::make_unique<WaveSolverMatFree<dim>>(cfl, /*output_skip=*/10000, gamma);
+    }
+    else if (solver_tag == "dg")
+    {
+      cfl = 0.05 / (WaveSolverDG<dim>::fe_degree * WaveSolverDG<dim>::fe_degree);
+      solver = std::make_unique<WaveSolverDG<dim>>(cfl, /*output_skip=*/10000, gamma);
+    }
+    else // theta
+    {
+      cfl = 0.25;
+      solver = std::make_unique<WaveSolverTheta<dim>>(/*fe_degree=*/4, /*theta=*/0.5, gamma);
+    }
+
+    solver->setup(tria);
+
+    const double local_min = tria.last()->diameter() / std::sqrt(double(dim));
+    const double h_cell = -Utilities::MPI::max(-local_min, MPI_COMM_WORLD);
+
+    double dt = 0.0;
+    if (use_spatial_scaling)
+    {
+      const double h_ref = numbers::PI / 4.0; // level 2 reference: h = pi / 4
+      const double dt_ref = cfl * h_ref;
+      dt = dt_ref * std::pow(h_cell / h_ref, 2.5); // dt ∝ h^2.5
+    }
+    else
+    {
+      dt = cfl * h_cell;
+    }
+
+    const unsigned int n_steps =
+        std::max(1u, static_cast<unsigned int>(std::ceil(final_time / dt)));
+    dt = final_time / n_steps;
+    solver->set_time_step(dt);
+
+    StandingWaveExact<dim> u_prev(-dt);
+    solver->set_initial_conditions(u0, v0, &u_prev);
+
+    solver->run(final_time, /*write_output=*/false);
+
+    StandingWaveExact<dim> sol_exact(final_time);
+    const double e_L2 = solver->compute_error(VectorTools::L2_norm, sol_exact);
+    const double e_H1 = solver->compute_error(VectorTools::H1_seminorm, sol_exact);
+
+    ConvergenceResult res;
+    res.refinement = ref;
+    res.h          = h_cell;
+    res.n_dofs     = solver->n_dofs();
+    res.l2_error   = e_L2;
+    res.l2_eoc     = 0.0;
+    res.h1_error   = e_H1;
+    res.h1_eoc     = 0.0;
+
+    if (i > 0)
+    {
+      const double log_h_ratio = std::log(results[i - 1].h / res.h);
+      res.l2_eoc = std::log(results[i - 1].l2_error / res.l2_error) / log_h_ratio;
+      res.h1_eoc = std::log(results[i - 1].h1_error / res.h1_error) / log_h_ratio;
+    }
+
+    results.push_back(res);
+
+    pcout << " DOFs: " << res.n_dofs
+          << ", L2: " << std::scientific << std::setprecision(4) << res.l2_error;
+    if (i > 0)
+      pcout << " (EOC " << std::fixed << std::setprecision(2) << res.l2_eoc << ")";
+    pcout << std::endl;
+  }
+
+  if (is_root)
+  {
+    std::cout << "\n========================================================================================\n"
+              << "              CONVERGENCE TABLE: " << solver_title << "\n"
+              << "========================================================================================\n";
+    std::cout << std::left
+              << std::setw(12) << "Refinement"
+              << std::setw(14) << "h"
+              << std::setw(12) << "DOFs"
+              << std::setw(16) << "L2 Error"
+              << std::setw(12) << "L2 EOC"
+              << std::setw(16) << "H1 Error"
+              << std::setw(12) << "H1 EOC"
+              << "\n";
+    std::cout << std::string(88, '-') << "\n";
+
+    for (size_t i = 0; i < results.size(); ++i)
+    {
+      const auto &r = results[i];
+      std::cout << std::left
+                << std::setw(12) << r.refinement
+                << std::scientific << std::setprecision(4)
+                << std::setw(14) << r.h
+                << std::defaultfloat
+                << std::setw(12) << r.n_dofs
+                << std::scientific << std::setprecision(6)
+                << std::setw(16) << r.l2_error;
+      if (i == 0)
+        std::cout << std::setw(12) << "    -     ";
+      else
+        std::cout << std::fixed << std::setprecision(2)
+                  << std::setw(12) << r.l2_eoc;
+
+      std::cout << std::scientific << std::setprecision(6)
+                << std::setw(16) << r.h1_error;
+      if (i == 0)
+        std::cout << std::setw(12) << "    -     ";
+      else
+        std::cout << std::fixed << std::setprecision(2)
+                  << std::setw(12) << r.h1_eoc;
+
+      std::cout << "\n";
+    }
+    std::cout << std::string(88, '=') << "\n\n";
+
+    const std::string csv_name = "convergence_" + solver_tag + ".csv";
+    std::ofstream csv(csv_name);
+    csv << std::setprecision(14);
+    csv << "refinement,h,n_dofs,l2_error,l2_eoc,h1_error,h1_eoc\n";
+    for (const auto &r : results)
+    {
+      csv << r.refinement << ','
+          << r.h << ','
+          << r.n_dofs << ','
+          << r.l2_error << ','
+          << r.l2_eoc << ','
+          << r.h1_error << ','
+          << r.h1_eoc << '\n';
+    }
+    std::cout << "  Convergence results saved to " << csv_name << "\n\n";
+  }
+}
+
 template <int dim>
 void run_convergence(const ProgramOptions &opts)
 {
-  static_assert(dim == 2, "Convergence study only implemented for dim=2.");
-  ConditionalOStream pcout(std::cout,
-                           Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+  static_assert(dim == 2, "Convergence study is configured for dim=2.");
 
-  pcout << "========================================\n"
-        << "  Theta-Scheme Convergence Study\n"
-        << "========================================\n";
+  std::vector<unsigned int> levels;
+  if (opts.user_refine)
+  {
+    for (unsigned int l = 2; l <= opts.refine; ++l)
+      levels.push_back(l);
+  }
+  else
+  {
+    // Canonical MMS levels:
+    // Option 2 (strict spatial scaling dt ∝ h^2.5) evaluates {2, 3, 4}
+    // where spatial error dominates before floating-point roundoff saturation.
+    // Option 1 (CFL scaling dt = CFL * h) safely includes {2, 3, 4, 5}.
+    if (opts.use_spatial_scaling)
+      levels = {2, 3, 4};
+    else
+      levels = {2, 3, 4, 5};
+  }
 
-  WaveSolverTheta<dim> solver;
-  const std::vector<unsigned int> levels = {5, 6, 7};
-  solver.run_convergence_study(levels, opts.final_time, /*fe_degree=*/1);
+  const double final_time = (opts.final_time != 45.0) ? opts.final_time : 1.0;
+
+  std::vector<std::string> solvers_to_run;
+  if (opts.solver == "all")
+    solvers_to_run = {"cg", "dg", "theta"};
+  else
+    solvers_to_run = {opts.solver};
+
+  for (const auto &s : solvers_to_run)
+  {
+    run_convergence_for_solver<dim>(
+        s, levels, final_time, opts.use_spatial_scaling, opts.gamma);
+  }
 }
 
 // ============================================================================

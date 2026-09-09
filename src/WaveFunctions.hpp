@@ -84,7 +84,105 @@ public:
 };
 
 // ---------------------------------------------------------------------------
-// Manufactured exact solution for the theta-scheme convergence study.
+// Standing wave manufactured exact solution (MMS) for convergence studies:
+//   u_exact(x, t) = cos(omega * t) * prod_{d=0}^{dim-1} sin(x_d)
+//   with omega = sqrt(dim) and c = 1.
+//
+// Solves:  u_tt - Delta u = 0   on  (0, pi)^dim x (0, T]
+//   with u = 0 on dOmega, u(x, 0) = prod sin(x_d), u_t(x, 0) = 0, and f = 0.
+// ---------------------------------------------------------------------------
+template <int dim>
+class StandingWaveExact : public Function<dim>
+{
+public:
+  explicit StandingWaveExact(const double time = 0.)
+    : Function<dim>(1, time)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    const double t     = this->get_time();
+    const double omega = std::sqrt(static_cast<double>(dim));
+    double       val   = std::cos(omega * t);
+    for (unsigned int d = 0; d < dim; ++d)
+      val *= std::sin(p[d]);
+    return val;
+  }
+
+  virtual Tensor<1, dim>
+  gradient(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    const double   t           = this->get_time();
+    const double   omega       = std::sqrt(static_cast<double>(dim));
+    const double   time_factor = std::cos(omega * t);
+    Tensor<1, dim> grad;
+    for (unsigned int d = 0; d < dim; ++d)
+    {
+      double spatial_deriv = std::cos(p[d]);
+      for (unsigned int j = 0; j < dim; ++j)
+        if (j != d)
+          spatial_deriv *= std::sin(p[j]);
+      grad[d] = spatial_deriv * time_factor;
+    }
+    return grad;
+  }
+};
+
+template <int dim>
+class StandingWaveIC : public Function<dim>
+{
+public:
+  explicit StandingWaveIC(const double time = 0.)
+    : Function<dim>(1, time)
+  {}
+
+  virtual double
+  value(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    double val = 1.0;
+    for (unsigned int d = 0; d < dim; ++d)
+      val *= std::sin(p[d]);
+    return val;
+  }
+
+  virtual Tensor<1, dim>
+  gradient(const Point<dim> &p, const unsigned int /*component*/ = 0) const override
+  {
+    Tensor<1, dim> grad;
+    for (unsigned int d = 0; d < dim; ++d)
+    {
+      double spatial_deriv = std::cos(p[d]);
+      for (unsigned int j = 0; j < dim; ++j)
+        if (j != d)
+          spatial_deriv *= std::sin(p[j]);
+      grad[d] = spatial_deriv;
+    }
+    return grad;
+  }
+};
+
+template <int dim>
+class StandingWaveV0 : public Function<dim>
+{
+public:
+  explicit StandingWaveV0(const double time = 0.)
+    : Function<dim>(1, time)
+  {}
+
+  virtual double
+  value(const Point<dim> & /*p*/, const unsigned int /*component*/ = 0) const override
+  {
+    return 0.0;
+  }
+};
+
+// Aliases for convenience
+template <int dim>
+using ExactSolution = StandingWaveExact<dim>;
+
+// ---------------------------------------------------------------------------
+// Legacy manufactured exact solution for the theta-scheme convergence study.
 //   u(x,y,t)   = t^2 * sin(pi*x) * sin(pi*y)
 //   u_t(x,y,t) = 2t  * sin(pi*x) * sin(pi*y)
 //   RHS f       = 2 * sin(pi*x) * sin(pi*y) * (1 + t^2 * pi^2)

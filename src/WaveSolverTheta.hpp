@@ -67,7 +67,8 @@ public:
 
   void
   set_initial_conditions(const Function<dim> &u0,
-                         const Function<dim> &v0) override;
+                         const Function<dim> &v0,
+                         const Function<dim> *u_prev = nullptr) override;
 
   double
   run(double T, bool write_output = false) override;

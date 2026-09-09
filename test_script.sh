@@ -74,23 +74,25 @@ run_benchmarks() {
 
 # ============================================================
 # Step 2: Convergence Studies (Manufactured Solution, dim=2)
-# Note: Convergence study is implemented for WaveSolverTheta
 # ============================================================
 run_convergence() {
     echo ">>> Step 2: Running Convergence Studies (dim=2)"
-    OUT_DIR="results/convergence/theta"
-    mkdir -p "${OUT_DIR}"
-    echo "Running convergence study for Theta-scheme..."
+    for s in "${SOLVERS[@]}"; do
+        OUT_DIR="results/convergence/${s}"
+        mkdir -p "${OUT_DIR}"
+        echo "Running convergence study for solver=${s}..."
 
-    cd "${OUT_DIR}"
-    "${EXEC}" --mode convergence \
-              --dim 2 \
-              --time "${FINAL_TIME}" > convergence_output.txt
+        cd "${OUT_DIR}"
+        "${EXEC}" --mode convergence \
+                  --solver "${s}" \
+                  --dim 2 \
+                  --time "${FINAL_TIME}" > convergence_output.txt
 
-    if [ -f "convergence_theta.csv" ]; then
-        echo "Convergence table saved to ${OUT_DIR}/convergence_theta.csv"
-    fi
-    cd - > /dev/null
+        if [ -f "convergence_${s}.csv" ]; then
+            echo "Convergence table saved to ${OUT_DIR}/convergence_${s}.csv"
+        fi
+        cd - > /dev/null
+    done
 }
 
 # ============================================================

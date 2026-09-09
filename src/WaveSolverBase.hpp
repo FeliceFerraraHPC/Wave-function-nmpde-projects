@@ -242,11 +242,13 @@ public:
 
   /**
    * Interpolate or project initial conditions for displacement u and
-   * velocity v.
+   * velocity v. For leapfrog solvers, u_prev can optionally provide an exact
+   * u(-dt) to eliminate the initial first-step truncation error.
    */
   virtual void
   set_initial_conditions(const Function<dim> &u0,
-                         const Function<dim> &v0) = 0;
+                         const Function<dim> &v0,
+                         const Function<dim> *u_prev = nullptr) = 0;
 
   /**
    * Run the full time loop from t = 0 to t = T.

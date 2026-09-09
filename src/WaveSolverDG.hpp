@@ -101,7 +101,8 @@ public:
 
   void
   set_initial_conditions(const Function<dim> &u0,
-                         const Function<dim> &v0) override;
+                         const Function<dim> &v0,
+                         const Function<dim> *u_prev = nullptr) override;
 
   double
   run(double T, bool write_output = false) override;
@@ -161,6 +162,13 @@ public:
     return time_step_;
   }
 
+  void
+  set_time_step(double dt) override
+  {
+    time_step_ = dt;
+    user_time_step_ = true;
+  }
+
   unsigned int
   n_dofs() const override;
 
@@ -195,6 +203,7 @@ private:
   const double gamma_; // damping coefficient in u_tt - Delta u + gamma*u_t = 0
   double time_ = 0.0;
   double time_step_ = 1.0;
+  bool user_time_step_ = false;
 
   std::vector<EnergyData> energy_history_;
   mutable double initial_total_energy_ = -1.0;

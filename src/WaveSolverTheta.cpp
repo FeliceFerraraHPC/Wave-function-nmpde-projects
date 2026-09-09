@@ -119,7 +119,8 @@ void WaveSolverTheta<dim>::assemble_matrices()
 // ============================================================================
 template <int dim>
 void WaveSolverTheta<dim>::set_initial_conditions(const Function<dim> &u0,
-                                                  const Function<dim> &v0)
+                                                  const Function<dim> &v0,
+                                                  const Function<dim> * /*u_prev*/)
 {
   // Use a ghosted vector for projection, then copy to owned.
   TrilinosWrappers::MPI::Vector ghosted(locally_owned_dofs_,
@@ -334,7 +335,7 @@ WaveSolverTheta<dim>::compute_error(VectorTools::NormType norm_type,
                                         MPI_COMM_WORLD);
   ghosted = solution_u_;
 
-  Vector<float> error_per_cell(tria_ptr_->n_active_cells());
+  Vector<double> error_per_cell(tria_ptr_->n_active_cells());
   VectorTools::integrate_difference(dof_handler_,
                                     ghosted,
                                     exact_solution,

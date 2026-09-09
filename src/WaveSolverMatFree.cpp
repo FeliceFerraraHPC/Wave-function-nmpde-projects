@@ -162,7 +162,8 @@ void WaveSolverMatFree<dim>::setup(const Triangulation<dim> &tria)
   const double local_min = tria_ptr_->last()->diameter() / std::sqrt(double(dim));
   const double global_min =
       -Utilities::MPI::max(-local_min, MPI_COMM_WORLD);
-  time_step_ = cfl_number_ * global_min;
+  if (!user_time_step_)
+    time_step_ = cfl_number_ * global_min;
 
   pcout_ << "   [MatFree-CG] DoFs: " << dof_handler_.n_dofs() << std::endl;
 }
@@ -172,7 +173,8 @@ void WaveSolverMatFree<dim>::setup(const Triangulation<dim> &tria)
 // ============================================================================
 template <int dim>
 void WaveSolverMatFree<dim>::set_initial_conditions(const Function<dim> &u0,
-                                                    const Function<dim> &v0)
+                                                    const Function<dim> &v0,
+                                                    const Function<dim> *u_prev)
 {
   LinearAlgebra::distributed::Vector<double> u0_vec, v0_vec;
   u0_vec.reinit(solution_);
@@ -185,9 +187,18 @@ void WaveSolverMatFree<dim>::set_initial_conditions(const Function<dim> &u0,
   constraints_.distribute(v0_vec);
 
   solution_ = u0_vec;
-  // u^{-1} = u0 - dt * v0  (leapfrog startup)
-  old_solution_ = u0_vec;
-  old_solution_.add(-time_step_, v0_vec);
+
+  if (u_prev != nullptr)
+  {
+    VectorTools::interpolate(mapping_, dof_handler_, *u_prev, old_solution_);
+    constraints_.distribute(old_solution_);
+  }
+  else
+  {
+    // u^{-1} = u0 - dt * v0  (leapfrog startup)
+    old_solution_ = u0_vec;
+    old_solution_.add(-time_step_, v0_vec);
+  }
   time_ = 0.0;
 }
 
@@ -225,7 +236,7 @@ WaveSolverMatFree<dim>::run(double T, bool write_output)
       -Utilities::MPI::max(-local_min, MPI_COMM_WORLD);
   const double dt_old = time_step_;
 
-  if (time_step_ <= 0.0)
+  if (!user_time_step_ || time_step_ <= 0.0)
     time_step_ = cfl_number_ * global_min;
 
   // Round to integer number of steps to land exactly at T.
@@ -236,9 +247,9 @@ WaveSolverMatFree<dim>::run(double T, bool write_output)
   pcout_ << "   [MatFree-CG] dt = " << time_step_
          << ", finest cell = " << global_min << std::endl;
 
-  // Adjust old_solution_ for the adjusted dt (leapfrog startup correction).
-  // old_solution_ was set to u0 - dt_old * v0 in set_initial_conditions.
-  if (std::abs(time_step_ - dt_old) > 1e-14 && dt_old > 0.0)
+  // Adjust old_solution_ for the adjusted dt (leapfrog startup correction)
+  // only if dt changed and user didn't explicitly specify custom time step.
+  if (std::abs(time_step_ - dt_old) > 1e-14 && dt_old > 0.0 && !user_time_step_)
   {
     old_solution_.sadd(time_step_ / dt_old, 1.0 - time_step_ / dt_old, solution_);
   }
@@ -292,7 +303,7 @@ WaveSolverMatFree<dim>::compute_error(VectorTools::NormType norm_type,
                                       const Function<dim> &exact_solution) const
 {
   solution_.update_ghost_values();
-  Vector<float> error_per_cell(tria_ptr_->n_active_cells());
+  Vector<double> error_per_cell(tria_ptr_->n_active_cells());
 
   VectorTools::integrate_difference(mapping_,
                                     dof_handler_,
