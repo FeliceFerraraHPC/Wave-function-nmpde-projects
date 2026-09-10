@@ -49,7 +49,7 @@ OUTPUT_CSV="${OUT_DIR}/meluxina_weak_scaling.csv"
 rm -f "${OUTPUT_CSV}"
 
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
-export KOKKOS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
+unset KOKKOS_NUM_THREADS
 export OMPI_MCA_pml='ucx'
 export OMPI_MCA_btl='^uct,ofi'
 export OMPI_MCA_mtl='^ofi'
@@ -87,7 +87,7 @@ for idx in "${!RANKS_SWEEP[@]}"; do
     for s in "${SOLVERS[@]}"; do
         echo "--> Testing solver '${s}' on ${p} MPI ranks (refine ${ref})..."
         rm -f "${TEMP_LOG}"
-        mpirun -x OMP_NUM_THREADS -x KOKKOS_NUM_THREADS -np ${p} \
+        mpirun -x OMP_NUM_THREADS -np ${p} \
             ${EXEC} --mode bench \
                     --dim "${DIM}" \
                     --refine "${ref}" \

@@ -52,7 +52,7 @@ fi
 
 # 5. OpenMP and TBB runtime settings tuned for MeluXina AMD EPYC Rome nodes
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
-export KOKKOS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
+unset KOKKOS_NUM_THREADS
 export OMP_PROC_BIND=close
 export OMP_PLACES=cores
 

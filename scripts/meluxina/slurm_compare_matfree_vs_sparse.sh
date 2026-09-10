@@ -47,7 +47,7 @@ RANKS=${SLURM_NTASKS:-32}
 FINAL_TIME="0.5"
 
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
-export KOKKOS_NUM_THREADS=${SLURM_CPUS_PER_TASK:-1}
+unset KOKKOS_NUM_THREADS
 export OMPI_MCA_pml='ucx'
 export OMPI_MCA_btl='^uct,ofi'
 export OMPI_MCA_mtl='^ofi'
@@ -84,7 +84,7 @@ run_comparison() {
         # Run each solver (Assembled Sparse, Matrix-Free CG)
         for s in "theta" "cg"; do
             echo "--> Running solver '${s}' on MeluXina (dim=${d}, refine=${ref})..."
-            mpirun -x OMP_NUM_THREADS -x KOKKOS_NUM_THREADS -np ${RANKS} \
+            mpirun -x OMP_NUM_THREADS -np ${RANKS} \
                 ${EXEC} --mode bench \
                         --dim "${d}" \
                         --refine "${ref}" \
