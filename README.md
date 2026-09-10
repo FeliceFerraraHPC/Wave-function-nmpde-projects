@@ -2,7 +2,17 @@
 
 A comprehensive C++ framework built on [deal.II](https://www.dealii.org/) for solving the time-dependent acoustic wave equation:
 
-$$ u_{tt} - \Delta u = f $$
+$$
+\begin{cases}
+\partial_{tt}u + \gamma \partial_t u - \Delta u = f & \text{in } \Omega \times (0,T) \\
+u = g_D & \text{on } \Gamma_D \times (0,T) \\
+\partial_n u = g_N & \text{on } \Gamma_N \times (0,T) \\
+u(\boldsymbol{x},0) = u_0(\boldsymbol{x}) & \text{in } \Omega \\
+\partial_t u(\boldsymbol{x},0) = v_0(\boldsymbol{x}) & \text{in } \Omega
+\end{cases}
+$$
+
+*(where $\gamma \partial_t u$ is an optional damping term, and the boundary $\partial\Omega$ is partitioned into Dirichlet $\Gamma_D$ and Neumann $\Gamma_N$ sections)*
 
 This repository provides a unified benchmarking suite to directly compare different numerical schemes, focusing on computational efficiency, parallel scalability, and numerical dispersion.
 
