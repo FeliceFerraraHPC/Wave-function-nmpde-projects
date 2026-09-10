@@ -1,0 +1,7 @@
+set mode = convergence
+set dim = 2
+set solver = dg
+set levels = 5-7
+set final_time = 1.0
+set write_output = false
+set output_frequency = 100
