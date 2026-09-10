@@ -1,23 +1,110 @@
-### Organizing the source code
-Please place all your sources into the `src` folder.
+# Wave Equation Benchmarking Suite
 
-Binary files must not be uploaded to the repository (including executables).
+A comprehensive C++ framework built on [deal.II](https://www.dealii.org/) for solving the time-dependent acoustic wave equation:
 
-Mesh files should not be uploaded to the repository. If applicable, upload `gmsh` scripts with suitable instructions to generate the meshes (and ideally a Makefile that runs those instructions). If not applicable, consider uploading the meshes to a different file sharing service, and providing a download link as part of the building and running instructions.
+$$ u_{tt} - \Delta u + \gamma u_t = f $$
 
-### Compiling
-To build the executable, make sure you have loaded the needed modules with
+This repository provides a unified benchmarking suite to directly compare different numerical schemes, focusing on computational efficiency, parallel scalability, and numerical dispersion.
+
+## 🚀 Features
+- **Solvers**:
+  - `theta`: Assembled Sparse Matrix (Theta-scheme Crank-Nicolson, Trilinos MPI)
+  - `cg`: Matrix-Free Continuous Galerkin (CG) with SIMD tensor-product evaluation
+  - `dg`: Matrix-Free Discontinuous Galerkin (SIPG) with parallel face integrals
+- **Modes**:
+  - Benchmarking (`bench`)
+  - Convergence Studies (`convergence`)
+  - Numerical Dispersion Analysis (`dispersion`)
+- **Parallelization**: Fully supports MPI + TBB + SIMD for extreme performance.
+
+## 📂 Repository Structure
+
+- `src/` - Contains all C++ source files and headers:
+  - `WaveSolverBase.hpp`: Abstract base class defining the standard solver interface.
+  - `WaveSolverTheta.*`: Assembled Sparse Matrix (Theta-scheme) implementation.
+  - `WaveSolverMatFree.*`: Matrix-Free CG implementation.
+  - `WaveSolverDG.*`: Matrix-Free DG (SIPG) implementation.
+  - `WaveFunctions.hpp`: Defines initial conditions and exact solutions (Gaussian packet, acoustic pulse, etc).
+  - `main.cpp`: The unified executable driver.
+- `docs/` - Detailed markdown documentation for the mathematical formulations and specific solver implementations.
+- `report.txt` - Summary report on mathematical features and implementations.
+- `test_script.sh` - Automated shell script for running standardized testing and output generation.
+
+## 🌳 Git Branching Model
+
+This repository is actively developed across several branches to isolate specific features and performance tests:
+
+- **`main`**: The primary stable branch containing the unified benchmarking suite and fully integrated core solvers (`theta`, `cg`, `dg`).
+- **`scaling`**: Dedicated branch containing Python scripts and automated shell scripts (e.g., `compare_matfree_vs_sparse.sh`) for comprehensive strong-scaling benchmarks, designed to be run locally or on HPC clusters (like MeluXina).
+- **`Energy`**: Experimental branch likely exploring specific energy-conserving properties or analyzing energy drift in detail.
+- **`feature/DG`** & **`feature/matrix-free`**: Feature-specific branches originally used to develop the Discontinuous Galerkin and Matrix-Free CG solvers before they were integrated.
+
+## ⚙️ Dependencies
+
+Ensure the following are installed and loaded in your environment:
+- **C++17** compatible compiler (e.g., GCC)
+- **CMake** (>= 3.10)
+- **deal.II** library (>= 9.3) compiled with MPI and p4est support
+- **MPI** (OpenMPI, MPICH, etc.)
+
+*(On cluster environments, you can usually load these via modules, e.g., `module load gcc-glibc dealii`)*
+
+## 🛠️ Building the Program
+
+Binary files must not be uploaded to the repository. The project uses standard CMake out-of-source builds:
+
 ```bash
-$ module load gcc-glibc dealii
+# Create a build directory
+mkdir -p build
+cd build
+
+# Configure with CMake
+cmake .. -DCMAKE_BUILD_TYPE=Release
+
+# Compile using all available CPU cores
+make -j$(nproc)
 ```
-Then run the following commands:
+
+## 🏃 Running the Program
+
+The main executable `WaveBenchmark` will be created inside the `build/` directory. 
+
+### Running sequentially
 ```bash
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make
+./build/WaveBenchmark --mode bench --solver all --dim 2 --refine 5
 ```
-The executable will be created into `build`, and can be executed through
+
+### Running in Parallel (MPI)
+For high-performance runs, simply invoke the executable with `mpirun` or `mpiexec`:
 ```bash
-$ ./executable-name
+mpirun -np 4 ./build/WaveBenchmark --mode bench --solver dg --dim 2 --refine 5
+```
+
+### Using the Automated Test Script
+The repository includes an automated testing script to sequentially execute standard benchmarks, convergence studies, and generate `.vtu` output for ParaView.
+```bash
+./test_script.sh --step bench --time 0.05
+```
+
+## 🎛️ Command-Line Options
+
+The `WaveBenchmark` executable accepts several arguments to customize the simulation:
+
+| Option | Description | Default |
+| :--- | :--- | :--- |
+| `--mode` | Execution mode (`bench`, `convergence`, `dispersion`, `both`) | `bench` |
+| `--dim` | Spatial dimension (`2` or `3`) | `2` |
+| `--refine` | Global mesh refinement level | `6` |
+| `--time` | Final simulation time | `45.0` |
+| `--solver` | Solvers to run (`all`, `theta`, `cg`, `dg`) | `all` |
+| `--gamma` | Damping coefficient $\gamma$ | `0.0` |
+| `--bc` | Boundary condition (`dirichlet`, `neumann`) | `dirichlet` |
+| `--wave` | Initial wave profile (`default`, `acoustic`, `pulse`) | `default` |
+| `--output` | Write VTU visualization files | (Disabled) |
+| `--target-dofs` | DOF target for dispersion p-study | `16000` |
+| `--non-homogeneous` | Enable non-homogeneous (time-dependent) boundary conditions | (Disabled) |
+
+*Example: Running a 3D dispersion analysis using the CG solver with VTU output enabled:*
+```bash
+mpirun -np 8 ./build/WaveBenchmark --mode dispersion --dim 3 --solver cg --output
 ```
