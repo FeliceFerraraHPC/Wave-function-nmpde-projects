@@ -15,7 +15,7 @@ This repository provides a unified benchmarking suite to directly compare differ
   - Benchmarking (`bench`)
   - Convergence Studies (`convergence`)
   - Numerical Dispersion Analysis (`dispersion`)
-- **Parallelization**: Fully supports MPI + TBB + SIMD for extreme performance.
+- **Parallelization**: Fully supports MPI + TBB + SIMD for performance.
 
 ## 📂 Repository Structure
 
@@ -35,9 +35,8 @@ This repository provides a unified benchmarking suite to directly compare differ
 This repository is actively developed across several branches to isolate specific features and performance tests:
 
 - **`main`**: The primary stable branch containing the unified benchmarking suite and fully integrated core solvers (`theta`, `cg`, `dg`).
-- **`scaling`**: Dedicated branch containing Python scripts and automated shell scripts (e.g., `compare_matfree_vs_sparse.sh`) for comprehensive strong-scaling benchmarks, designed to be run locally or on HPC clusters (like MeluXina).
+- **`scaling`**: Dedicated branch containing Python scripts and automated shell scripts (e.g., `compare_matfree_vs_sparse.sh`) for comprehensive strong-scaling benchmarks, designed to be run locally or on HPC clusters.
 - **`Energy`**: Experimental branch likely exploring specific energy-conserving properties or analyzing energy drift in detail.
-- **`feature/DG`** & **`feature/matrix-free`**: Feature-specific branches originally used to develop the Discontinuous Galerkin and Matrix-Free CG solvers before they were integrated.
 
 ## ⚙️ Dependencies
 
@@ -46,8 +45,6 @@ Ensure the following are installed and loaded in your environment:
 - **CMake** (>= 3.10)
 - **deal.II** library (>= 9.3) compiled with MPI and p4est support
 - **MPI** (OpenMPI, MPICH, etc.)
-
-*(On cluster environments, you can usually load these via modules, e.g., `module load gcc-glibc dealii`)*
 
 ## 🛠️ Building the Program
 
