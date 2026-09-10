@@ -516,9 +516,17 @@ WaveSolverDG<dim>::compute_energy() const
   //   solution_         = u^{n+1}   (just computed)
   //   old_solution_     = u^n
   //   old_old_solution_ = u^{n-1}
-  solution_.update_ghost_values();
-  old_solution_.update_ghost_values();
-  old_old_solution_.update_ghost_values();
+  LinearAlgebra::distributed::Vector<double> loc_sol(dof_handler_.locally_owned_dofs(), locally_relevant_dofs_, MPI_COMM_WORLD);
+  LinearAlgebra::distributed::Vector<double> loc_old_sol(dof_handler_.locally_owned_dofs(), locally_relevant_dofs_, MPI_COMM_WORLD);
+  LinearAlgebra::distributed::Vector<double> loc_old_old_sol(dof_handler_.locally_owned_dofs(), locally_relevant_dofs_, MPI_COMM_WORLD);
+
+  loc_sol = solution_;
+  loc_old_sol = old_solution_;
+  loc_old_old_sol = old_old_solution_;
+
+  loc_sol.update_ghost_values();
+  loc_old_sol.update_ghost_values();
+  loc_old_old_sol.update_ghost_values();
 
   // -----------------------------------------------------------------------
   // SIPG penalty parameter (same formula as WaveOperationDG).
@@ -557,10 +565,10 @@ WaveSolverDG<dim>::compute_energy() const
     if (cell->is_locally_owned())
     {
       fe_values.reinit(cell);
-      fe_values.get_function_values(solution_, u_next);
-      fe_values.get_function_values(old_old_solution_, u_prev);
-      fe_values.get_function_gradients(old_solution_, grad_u_curr);
-      fe_values.get_function_gradients(solution_, grad_u_next);
+      fe_values.get_function_values(loc_sol, u_next);
+      fe_values.get_function_values(loc_old_old_sol, u_prev);
+      fe_values.get_function_gradients(loc_old_sol, grad_u_curr);
+      fe_values.get_function_gradients(loc_sol, grad_u_next);
 
       for (unsigned int q = 0; q < n_q; ++q)
       {
@@ -625,10 +633,10 @@ WaveSolverDG<dim>::compute_energy() const
         fv_curr.reinit(cell, f);
         fv_next.reinit(cell, f);
 
-        fv_curr.get_function_values(old_solution_, uc);
-        fv_next.get_function_values(solution_, un);
-        fv_curr.get_function_gradients(old_solution_, gc);
-        fv_next.get_function_gradients(solution_, gn);
+        fv_curr.get_function_values(loc_old_sol, uc);
+        fv_next.get_function_values(loc_sol, un);
+        fv_curr.get_function_gradients(loc_old_sol, gc);
+        fv_next.get_function_gradients(loc_sol, gn);
 
         for (unsigned int q = 0; q < n_fq; ++q)
         {
@@ -658,15 +666,15 @@ WaveSolverDG<dim>::compute_energy() const
         fv_nbr_curr.reinit(neighbor, nbr_f);
         fv_nbr_next.reinit(neighbor, nbr_f);
 
-        fv_curr.get_function_values(old_solution_, uc);
-        fv_next.get_function_values(solution_, un);
-        fv_curr.get_function_gradients(old_solution_, gc);
-        fv_next.get_function_gradients(solution_, gn);
+        fv_curr.get_function_values(loc_old_sol, uc);
+        fv_next.get_function_values(loc_sol, un);
+        fv_curr.get_function_gradients(loc_old_sol, gc);
+        fv_next.get_function_gradients(loc_sol, gn);
 
-        fv_nbr_curr.get_function_values(old_solution_, uc_nbr);
-        fv_nbr_next.get_function_values(solution_, un_nbr);
-        fv_nbr_curr.get_function_gradients(old_solution_, gc_nbr);
-        fv_nbr_next.get_function_gradients(solution_, gn_nbr);
+        fv_nbr_curr.get_function_values(loc_old_sol, uc_nbr);
+        fv_nbr_next.get_function_values(loc_sol, un_nbr);
+        fv_nbr_curr.get_function_gradients(loc_old_sol, gc_nbr);
+        fv_nbr_next.get_function_gradients(loc_sol, gn_nbr);
 
         for (unsigned int q = 0; q < n_fq; ++q)
         {
