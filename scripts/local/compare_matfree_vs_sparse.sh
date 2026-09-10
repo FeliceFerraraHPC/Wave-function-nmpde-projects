@@ -4,10 +4,9 @@
 #
 # Direct comparison of wall-clock compute time between:
 #   - Matrix-Free CG (FEEvaluation cell_loop, SIMD tensor-product)
-#   - Matrix-Free DG (DG cell & face loops)
 #   - Assembled Sparse Matrix (Theta-scheme Crank-Nicolson)
 #
-# Results are saved in CSV format and plotted automatically.
+# Results are saved in CSV format (plotting can be done separately via plot_results.py).
 #
 # Usage:
 #   ./scripts/local/compare_matfree_vs_sparse.sh [options]
@@ -16,6 +15,7 @@
 #   --dim <2|3|all>         Spatial dimension (default: 2)
 #   --refine-2d <"list">    2D mesh refinement levels (default: "4 5 6")
 #   --refine-3d <"list">    3D mesh refinement levels (default: "2 3")
+#   --solvers <"list">      Solvers to benchmark (default: "theta cg")
 #   --time <T>              Simulation end time (default: 1.0)
 #   --np <N>                Number of processes (default: auto or 1)
 #   --output <path>         Output CSV file path
@@ -29,17 +29,19 @@ REFINES_2D="4 5 6"
 REFINES_3D="2 3"
 FINAL_TIME="1.0"
 OUTPUT_CSV="results/local/matfree_vs_sparse_comparison.csv"
+SOLVERS_STR="theta cg"
 NP=""
 
 # Parse command line options
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --dim)       DIM="$2";        shift 2 ;;
-        --refine-2d) REFINES_2D="$2"; shift 2 ;;
-        --refine-3d) REFINES_3D="$2"; shift 2 ;;
-        --time)      FINAL_TIME="$2"; shift 2 ;;
-        --np)        NP="$2";         shift 2 ;;
-        --output)    OUTPUT_CSV="$2"; shift 2 ;;
+        --dim)       DIM="$2";         shift 2 ;;
+        --refine-2d) REFINES_2D="$2";  shift 2 ;;
+        --refine-3d) REFINES_3D="$2";  shift 2 ;;
+        --solvers)   SOLVERS_STR="$2"; shift 2 ;;
+        --time)      FINAL_TIME="$2";  shift 2 ;;
+        --np)        NP="$2";          shift 2 ;;
+        --output)    OUTPUT_CSV="$2";  shift 2 ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
 done
@@ -104,8 +106,8 @@ run_for_dim() {
         echo "--------------------------------------------------"
         rm -f "${TEMP_LOG}"
 
-        # Run each solver (Assembled Sparse, Matrix-Free CG, Matrix-Free DG)
-        for s in "theta" "cg" "dg"; do
+        # Run each solver (Assembled Sparse, Matrix-Free CG)
+        for s in ${SOLVERS_STR}; do
             echo "--> Running solver: ${s} (dim=${d}, refine=${ref})..."
             ${RUN_CMD} ${EXEC} --mode bench \
                                --dim "${d}" \
@@ -142,9 +144,7 @@ echo " Comparison Completed Successfully!"
 echo " Results written to: ${OUTPUT_CSV}"
 echo "======================================================================"
 
-# Generate plots
-if command -v python3 &>/dev/null; then
-    PLOT_DIR="$(dirname "${OUTPUT_CSV}")/plots"
-    echo ">>> Generating comparison plots in: ${PLOT_DIR}..."
-    python3 scripts/plot_results.py --csv "${OUTPUT_CSV}" --outdir "${PLOT_DIR}" || true
-fi
+echo ""
+echo ">>> Plotting is separate. To generate comparison plots, run:"
+echo "    python3 scripts/plot_results.py --csv ${OUTPUT_CSV} --type comparison"
+echo ""

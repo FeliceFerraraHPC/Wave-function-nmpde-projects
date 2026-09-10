@@ -15,7 +15,6 @@
 #
 # Direct comparison of wall-clock compute time between:
 #   - Matrix-Free CG (FEEvaluation cell_loop, SIMD tensor-product)
-#   - Matrix-Free DG (DG cell & face loops)
 #   - Assembled Sparse Matrix (Theta-scheme Crank-Nicolson)
 #
 # Sweeps mesh refinement levels in 2D and 3D.
@@ -82,8 +81,8 @@ run_comparison() {
 
         rm -f "${TEMP_LOG}"
 
-        # Run each solver (Assembled Sparse, Matrix-Free CG, Matrix-Free DG)
-        for s in "theta" "cg" "dg"; do
+        # Run each solver (Assembled Sparse, Matrix-Free CG)
+        for s in "theta" "cg"; do
             echo "--> Running solver '${s}' on MeluXina (dim=${d}, refine=${ref})..."
             mpirun -x OMP_NUM_THREADS -x KOKKOS_NUM_THREADS -np ${RANKS} \
                 ${EXEC} --mode bench \
@@ -116,9 +115,7 @@ echo " Direct Comparison Completed!"
 echo " Results written to: ${OUTPUT_CSV}"
 echo "======================================================================"
 
-# Generate comparison plots
-if command -v python3 &>/dev/null; then
-    PLOT_DIR="${OUT_DIR}/plots"
-    echo ">>> Generating comparison plots in: ${PLOT_DIR}..."
-    python3 scripts/plot_results.py --csv "${OUTPUT_CSV}" --outdir "${PLOT_DIR}" || true
-fi
+echo ""
+echo ">>> Plotting is separate. To generate comparison plots, run:"
+echo "    python3 scripts/plot_results.py --csv ${OUTPUT_CSV} --type comparison"
+echo ""

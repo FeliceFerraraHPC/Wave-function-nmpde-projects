@@ -81,6 +81,8 @@ def main():
     parser.add_argument("--refine", type=int, default=6)
     parser.add_argument("--ranks", type=int, default=1)
     parser.add_argument("--baseline-time", type=float, default=None, help="Baseline time T(1) for speedup computation")
+    parser.add_argument("--baseline-dofs", type=int, default=None, help="Baseline DoFs at rank 1 for weak scaling normalization")
+    parser.add_argument("--scaling-type", choices=["strong", "weak"], default="strong", help="Scaling type (strong or weak)")
     args = parser.parse_args()
 
     records = parse_benchmark_log(args.log)
@@ -147,8 +149,13 @@ def main():
                 speedup = None
                 eff = None
                 if args.baseline_time and args.baseline_time > 0 and r["compute_time_s"] > 0:
-                    speedup = round(args.baseline_time / r["compute_time_s"], 2)
-                    eff = round((speedup / args.ranks) * 100.0, 1) if args.ranks > 0 else 100.0
+                    if args.scaling_type == "weak":
+                        dof_ratio = (r["dofs"] / (args.ranks * args.baseline_dofs)) if (args.baseline_dofs and args.ranks > 0) else 1.0
+                        eff = round((args.baseline_time / r["compute_time_s"]) * dof_ratio * 100.0, 1)
+                        speedup = round((args.baseline_time / r["compute_time_s"]) * (args.ranks * dof_ratio), 2)
+                    else:
+                        speedup = round(args.baseline_time / r["compute_time_s"], 2)
+                        eff = round((speedup / args.ranks) * 100.0, 1) if args.ranks > 0 else 100.0
 
                 writer.writerow({
                     "timestamp": now_iso,
