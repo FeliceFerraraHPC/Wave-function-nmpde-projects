@@ -2,7 +2,7 @@
 
 A comprehensive C++ framework built on [deal.II](https://www.dealii.org/) for solving the time-dependent acoustic wave equation:
 
-$$ u_{tt} - \Delta u + \gamma u_t = f $$
+$$ u_{tt} - \Delta u = f $$
 
 This repository provides a unified benchmarking suite to directly compare different numerical schemes, focusing on computational efficiency, parallel scalability, and numerical dispersion.
 
