@@ -55,6 +55,7 @@ WaveEquation
 *.dat
 *.log
 output*/
+results/
 
 # ==============================================================================
 # Local Lab & Reference Folders
