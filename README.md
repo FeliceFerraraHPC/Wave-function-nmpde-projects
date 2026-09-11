@@ -12,7 +12,7 @@ u(\boldsymbol{x},0) = u_0(\boldsymbol{x}) & \text{in } \Omega \\
 \end{cases}
 $$
 
-*(where $\gamma \partial_t u$ is an optional damping term, and the boundary $\partial\Omega$ is partitioned into Dirichlet $\Gamma_D$ and Neumann $\Gamma_N$ sections)*
+*(where γ∂<sub>t</sub>u is an optional damping term, and the boundary ∂Ω is partitioned into Dirichlet Γ<sub>D</sub> and Neumann Γ<sub>N</sub> sections)*
 
 This repository provides a unified benchmarking suite to directly compare different numerical schemes, focusing on computational efficiency, parallel scalability, and numerical dispersion.
 
